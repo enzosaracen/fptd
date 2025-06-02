@@ -167,26 +167,26 @@ module main_scene (
         reg [15:0] p;
         begin
             p = progress;
-            if (p < 520) begin
+            if (p < 507) begin
                 ex = p;
                 ey = 73;
-            end else if (p < 780) begin
+            end else if (p < 741) begin
                 ex = 507;
-                ey = 73 + (p - 520);
-            end else if (p < 1180) begin
-                ex = 507 - (p - 780);
+                ey = 73 + (p - 507);
+            end else if (p < 1115) begin
+                ex = 507 - (p - 741);
                 ey = 307;
-            end else if (p < 1330) begin
+            end else if (p < 1245) begin
                 ex = 133;
-                ey = 307 - (p - 1180);
-            end else if (p < 1600) begin
-                ex = 133 + (p - 1330);
+                ey = 307 - (p - 1115);
+            end else if (p < 1499) begin
+                ex = 133 + (p - 1245);
                 ey = 177;
-            end else if (p < 1850) begin
+            end else if (p < 1729) begin
                 ex = 387;
-                ey = 177 + (p - 1600);
+                ey = 177 + (p - 1499);
             end else begin
-                ex = 387 - (p - 1850);
+                ex = 387 - (p - 1729);
                 ey = 407;
             end
             get_enemy_position = {ex, ey};
@@ -303,14 +303,14 @@ module main_scene (
                     end
                     
                     spawn_timer <= spawn_timer + 1;
-                    if (spawn_timer >= (300 - (wave_number > 20 ? 20 : wave_number) * 10)) begin
+                    if (spawn_timer >= 100) begin
                         spawn_timer <= 0;
                         for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
                             if (!enemy_active[i]) begin
                                 enemy_active[i] = 1;
                                 enemy_progress[i] = 0;
-                                enemy_health[i] = 50 + wave_number * 20;
-                                enemy_max_health[i] = 50 + wave_number * 20;
+                                enemy_health[i] = 25 + wave_number * 10;
+                                enemy_max_health[i] = 25 + wave_number * 10;
                                 enemy_slow[i] = 0;
                                 pos = get_enemy_position(0);
                                 enemy_x[i] = pos[19:10];
@@ -430,7 +430,7 @@ module main_scene (
                             dx = $signed({1'b0, proj_target_x[i]}) - $signed({1'b0, proj_x[i]});
                             dy = $signed({1'b0, proj_target_y[i]}) - $signed({1'b0, proj_y[i]});
                             
-                            if ((dx[10] ? -dx : dx) < 4 && (dy[10] ? -dy : dy) < 4) begin
+                            if ((dx[10] ? -dx : dx) < 10 && (dy[10] ? -dy : dy) < 10) begin
                                 proj_active[i] = 0;
                             end else begin
                                 abs_dx = dx[10] ? -dx : dx;
@@ -546,7 +546,7 @@ module main_scene (
                             end
                             if (tower_target[i] < MAX_ENEMIES && enemy_active[tower_target[i]]) begin
                                 reg signed [10:0] ndx, ndy;
-                                reg [9:0] tpx, tpy;
+                                reg signed [10:0] tpx, tpy;
                                 tpx = tower_x[i] * TILE_SIZE + 13;
                                 tpy = tower_y[i] * TILE_SIZE + 13;
                                 ndx = $signed({1'b0, enemy_x[tower_target[i]]}) - $signed({1'b0, tpx});
