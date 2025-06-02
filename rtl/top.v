@@ -40,6 +40,8 @@ module top (
 
     wire visible = (h_cnt < H_VISIBLE) && (v_cnt < V_VISIBLE);
     main_scene scene_i (
+		.clk (clk),
+		.rst_n (rst_n),
         .visible (visible),
         .x (h_cnt),
         .y (v_cnt),

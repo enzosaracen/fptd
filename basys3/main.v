@@ -101,8 +101,7 @@ module main_scene (
     reg [1:0] proj_type [0:MAX_PROJECTILES-1];
     
     // Game clock divider for slower game updates
-	localparam GAME_DIV = 8333;
-    reg [$clog2(GAME_DIV)-1:0] game_clk_div = 0;
+    reg [3:0] game_clk_div = 0;
     wire game_tick = (game_clk_div == 0);
     
     // Processing state machine for spreading work across cycles
@@ -176,7 +175,6 @@ module main_scene (
         for (init_i = 0; init_i < MAX_PROJECTILES; init_i = init_i + 1) begin
             proj_active[init_i] = 0;
         end
-		game_clk_div = GAME_DIV-1;
     end
     
     // New frame detection
@@ -195,11 +193,6 @@ module main_scene (
     
     // Main game logic - split into multiple clock cycles
     always @(posedge clk) begin
-		if (game_clk_div == 0) begin
-			game_clk_div <= GAME_DIV-1;
-		end else begin
-			game_clk_div <= game_clk_div-1;
-		end
         /*if (!rst_n) begin
             // Reset all state
             game_state <= STATE_MENU;
@@ -219,7 +212,9 @@ module main_scene (
             game_clk_div <= 0;
         end*/
         if (new_frame) begin
+            // Update frame counter and game clock divider
             frame_counter <= frame_counter + 1;
+            game_clk_div <= game_clk_div + 1;
             
             // Update button states
             btnU_prev <= btnU;
@@ -282,7 +277,7 @@ module main_scene (
                         
                         // Tower placement/upgrade/sell logic
                         if (btnC_pressed) begin
-							handle_tower_action();
+							spawn_enemy();
                         end
                     end
                 end
@@ -301,7 +296,6 @@ module main_scene (
         
         // Game processing state machine - runs every clock
         if (game_state == STATE_GAME && !paused && game_tick) begin
-			//$display("here");
             case (process_state)
                 PROC_IDLE: begin
                     process_state <= PROC_UPDATE_ENEMIES;
