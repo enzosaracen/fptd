@@ -17,13 +17,12 @@ module main_scene (
     output reg [3:0] green,
     output reg [3:0] blue
 );
-    // Constants
     localparam TILE_SIZE = 26;
     localparam GRID_WIDTH = 24;
     localparam GRID_HEIGHT = 18;
-    localparam MAX_ENEMIES = 16;      // Reduced for faster synthesis
-    localparam MAX_TOWERS = 32;       // Reduced
-    localparam MAX_PROJECTILES = 32;  // Reduced
+    localparam MAX_ENEMIES = 16;
+    localparam MAX_TOWERS = 32;
+    localparam MAX_PROJECTILES = 32;
     localparam TOWER_RANGE = 100;
     localparam PROJECTILE_SPEED = 8;
     localparam ENEMY_SPEED = 1;
@@ -33,20 +32,18 @@ module main_scene (
     localparam TOWER_SELL_RATIO = 70;
     localparam MAX_LIVES = 10;
     
-    // States
     localparam STATE_MENU = 0;
     localparam STATE_GAME = 1;
     localparam STATE_SHOP = 2;
     localparam STATE_GAMEOVER = 3;
     localparam STATE_HIGHSCORE = 4;
     
-    // Tower types
     localparam TOWER_BASIC = 0;
     localparam TOWER_FAST = 1;
     localparam TOWER_HEAVY = 2;
     localparam TOWER_SLOW = 3;
     
-    // Game state
+    // game state
     reg [2:0] game_state = STATE_MENU;
     reg [15:0] currency = 200;
     reg [7:0] lives = MAX_LIVES;
@@ -57,11 +54,11 @@ module main_scene (
     reg [19:0] spawn_timer = 0;
     reg paused = 0;
     
-    // Cursor
+    // cursor
     reg [4:0] cursor_x = 12;
     reg [4:0] cursor_y = 9;
     
-    // Button edge detection
+    // button edge detection
     reg btnU_prev = 0;
     reg btnD_prev = 0;
     reg btnL_prev = 0;
@@ -73,10 +70,10 @@ module main_scene (
     reg btn4_prev = 0;
     reg [3:0] btn_delay = 0;
     
-    // Tower selection
+    // tower selection
     reg [1:0] selected_tower_type = TOWER_BASIC;
     
-    // Arrays for game objects
+    // arrays for game objects
     reg [9:0] enemy_x [0:MAX_ENEMIES-1];
     reg [9:0] enemy_y [0:MAX_ENEMIES-1];
     reg [15:0] enemy_health [0:MAX_ENEMIES-1];
@@ -100,12 +97,12 @@ module main_scene (
     reg proj_active [0:MAX_PROJECTILES-1];
     reg [1:0] proj_type [0:MAX_PROJECTILES-1];
     
-    // Game clock divider for slower game updates
+    // game clock divider
 	localparam GAME_DIV = 8333;
     reg [$clog2(GAME_DIV)-1:0] game_clk_div = 0;
     wire game_tick = (game_clk_div == 0);
     
-    // Processing state machine for spreading work across cycles
+    // processing state machine
     reg [3:0] process_state = 0;
     reg [5:0] process_index = 0;
     
@@ -116,22 +113,20 @@ module main_scene (
     localparam PROC_CHECK_COLLISIONS = 4;
     localparam PROC_SPAWN = 5;
     
-    // Path checking function
     function is_path;
         input [9:0] px;
         input [9:0] py;
         begin
             is_path = ((py >= 60 && py <= 86) && (px >= 0 && px <= 520)) ||
-                      ((px >= 494 && px <= 520) && (py >= 60 && py <= 320)) ||
-                      ((py >= 294 && py <= 320) && (px >= 120 && px <= 520)) ||
-                      ((px >= 120 && px <= 146) && (py >= 164 && py <= 320)) ||
-                      ((py >= 164 && py <= 190) && (px >= 120 && px <= 400)) ||
-                      ((px >= 374 && px <= 400) && (py >= 164 && py <= 420)) ||
-                      ((py >= 394 && py <= 420) && (px >= 26 && px <= 400));
+				((px >= 494 && px <= 520) && (py >= 60 && py <= 320)) ||
+				((py >= 294 && py <= 320) && (px >= 120 && px <= 520)) ||
+				((px >= 120 && px <= 146) && (py >= 164 && py <= 320)) ||
+				((py >= 164 && py <= 190) && (px >= 120 && px <= 400)) ||
+				((px >= 374 && px <= 400) && (py >= 164 && py <= 420)) ||
+				((py >= 394 && py <= 420) && (px >= 0 && px <= 400));
         end
     endfunction
     
-    // Enemy position calculation
     function [19:0] get_enemy_position;
         input [15:0] progress;
         reg [9:0] ex, ey;
@@ -164,7 +159,6 @@ module main_scene (
         end
     endfunction
     
-    // Initialize arrays
     integer init_i;
     initial begin
         for (init_i = 0; init_i < MAX_ENEMIES; init_i = init_i + 1) begin
@@ -179,10 +173,8 @@ module main_scene (
 		game_clk_div = GAME_DIV-1;
     end
     
-    // New frame detection
     wire new_frame = (x == 0 && y == 0);
-    
-    // Button edge detection
+
     wire btnU_pressed = btnU && !btnU_prev;
     wire btnD_pressed = btnD && !btnD_prev;
     wire btnL_pressed = btnL && !btnL_prev;
@@ -193,7 +185,6 @@ module main_scene (
     wire btn3_pressed = btn3 && !btn3_prev;
     wire btn4_pressed = btn4 && !btn4_prev;
     
-    // Main game logic - split into multiple clock cycles
     always @(posedge clk) begin
 		if (game_clk_div == 0) begin
 			game_clk_div <= GAME_DIV-1;
@@ -221,7 +212,6 @@ module main_scene (
         if (new_frame) begin
             frame_counter <= frame_counter + 1;
             
-            // Update button states
             btnU_prev <= btnU;
             btnD_prev <= btnD;
             btnL_prev <= btnL;
@@ -235,12 +225,10 @@ module main_scene (
             if (btn_delay > 0)
                 btn_delay <= btn_delay - 1;
             
-            // Handle menu states
             case (game_state)
                 STATE_MENU: begin
                     if (btnC_pressed) begin
                         game_state <= STATE_GAME;
-                        // Initialize new game
                         currency <= 200;
                         lives <= MAX_LIVES;
                         score <= 0;
@@ -256,7 +244,6 @@ module main_scene (
                     end
                     
                     if (!paused) begin
-                        // Handle input
                         if ((btnU_pressed || (btnU && btn_delay == 0)) && cursor_y > 0) begin
                             cursor_y <= cursor_y - 1;
                             btn_delay <= btnU_pressed ? 0 : 3;
@@ -274,16 +261,16 @@ module main_scene (
                             btn_delay <= btnR_pressed ? 0 : 3;
                         end
                         
-                        // Tower type selection
-                        if (btn1_pressed) selected_tower_type <= TOWER_BASIC;
-                        if (btn2_pressed) selected_tower_type <= TOWER_FAST;
-                        if (btn3_pressed) selected_tower_type <= TOWER_HEAVY;
-                        if (btn4_pressed && !btnC) selected_tower_type <= TOWER_SLOW;
-                        
-                        // Tower placement/upgrade/sell logic
-                        if (btnC_pressed) begin
+                        if (btn1_pressed)
+							selected_tower_type <= TOWER_BASIC;
+                        if (btn2_pressed)
+							selected_tower_type <= TOWER_FAST;
+                        if (btn3_pressed)
+							selected_tower_type <= TOWER_HEAVY;
+                        if (btn4_pressed && !btnC)
+							selected_tower_type <= TOWER_SLOW;
+                        if (btnC_pressed)
 							handle_tower_action();
-                        end
                     end
                 end
                 
@@ -298,10 +285,7 @@ module main_scene (
                 end
             endcase
         end
-        
-        // Game processing state machine - runs every clock
         if (game_state == STATE_GAME && !paused && game_tick) begin
-			//$display("here");
             case (process_state)
                 PROC_IDLE: begin
                     process_state <= PROC_UPDATE_ENEMIES;
@@ -357,7 +341,6 @@ module main_scene (
         end
     end
     
-    // Task to handle tower placement/upgrade/sell
     task handle_tower_action;
         reg [9:0] cx, cy;
         reg position_empty;
@@ -372,7 +355,7 @@ module main_scene (
                 position_empty = 1;
                 tower_idx = 31;
                 
-                // Check if position has a tower
+                // check if position has a tower
                 for (i = 0; i < MAX_TOWERS; i = i + 1) begin
                     if (tower_active[i] && tower_x[i] == cursor_x && tower_y[i] == cursor_y) begin
                         position_empty = 0;
@@ -381,7 +364,7 @@ module main_scene (
                 end
                 
                 if (position_empty && currency >= TOWER_COST) begin
-                    // Place new tower
+                    // place new tower
 					found = 0;
                     for (i = 0; i < MAX_TOWERS; i = i + 1) begin
 						if (!found && !tower_active[i]) begin
@@ -399,15 +382,14 @@ module main_scene (
 						tower_cooldown[i] <= 0;
 						tower_target[i] <= 255;
 						currency <= currency - TOWER_COST;
-						i = MAX_TOWERS; // Exit loop
 					end
 
                 end else if (!position_empty && btnL && tower_idx < MAX_TOWERS) begin
-                    // Sell tower
+                    // sell tower
                     currency <= currency + (TOWER_COST + tower_level[tower_idx] * TOWER_UPGRADE_COST) * TOWER_SELL_RATIO / 100;
                     tower_active[tower_idx] <= 0;
                 end else if (!position_empty && btnR && currency >= TOWER_UPGRADE_COST && tower_idx < MAX_TOWERS) begin
-                    // Upgrade tower
+                    // upgrade tower
                     if (tower_level[tower_idx] < 3) begin
                         tower_level[tower_idx] <= tower_level[tower_idx] + 1;
                         currency <= currency - TOWER_UPGRADE_COST;
@@ -417,96 +399,92 @@ module main_scene (
         end
     endtask
     
-    // Task to update a single enemy
     task update_enemy;
         input [4:0] idx;
         reg [19:0] pos;
         begin
-            if (enemy_slow[idx] > 0) begin
-                enemy_slow[idx] <= enemy_slow[idx] - 1;
-                if (frame_counter[0] == 0)
-                    enemy_progress[idx] <= enemy_progress[idx] + ENEMY_SPEED;
-            end else begin
-                enemy_progress[idx] <= enemy_progress[idx] + ENEMY_SPEED + (wave_number >> 3);
-            end
-            
-            pos = get_enemy_position(enemy_progress[idx]);
-            enemy_x[idx] <= pos[19:10];
-            enemy_y[idx] <= pos[9:0];
-            
-            if (enemy_progress[idx] > 2200) begin
-                enemy_active[idx] <= 0;
-                lives <= (lives > 0) ? lives - 1 : 0;
-                if (lives == 1) begin
-                    game_state <= STATE_GAMEOVER;
-                    if (score > highscore)
-                        highscore <= score;
-                end
-            end
-            
-            if (enemy_health[idx] == 0) begin
-                enemy_active[idx] <= 0;
-                currency <= currency + ENEMY_REWARD + (wave_number >> 2);
-                score <= score + 10 + wave_number;
-            end
+			if (enemy_slow[idx] > 0) begin
+				enemy_slow[idx] <= enemy_slow[idx] - 1;
+				if (frame_counter[0] == 0)
+					enemy_progress[idx] <= enemy_progress[idx] + ENEMY_SPEED;
+			end else begin
+				enemy_progress[idx] <= enemy_progress[idx] + ENEMY_SPEED + (wave_number >> 3);
+			end
+			
+			pos = get_enemy_position(enemy_progress[idx]);
+			enemy_x[idx] <= pos[19:10];
+			enemy_y[idx] <= pos[9:0];
+			
+			if (enemy_progress[idx] > 2200) begin
+				enemy_active[idx] <= 0;
+				lives <= (lives > 0) ? lives - 1 : 0;
+				if (lives == 1) begin
+					game_state <= STATE_GAMEOVER;
+					if (score > highscore)
+						highscore <= score;
+				end
+			end
+			
+			if (enemy_health[idx] == 0) begin
+				enemy_active[idx] <= 0;
+				currency <= currency + ENEMY_REWARD + (wave_number >> 2);
+				score <= score + 10 + wave_number;
+			end
         end
     endtask
     
-    // Task to update a single tower
     task update_tower;
         input [4:0] idx;
-        reg [9:0] tower_px, tower_py;
         reg [9:0] range;
         reg [15:0] min_dist;
         reg [7:0] best_target;
         reg signed [10:0] dx, dy;
         reg [15:0] _dist;
+		reg [9:0] tower_px, tower_py;
         integer j;
         begin
-            if (tower_cooldown[idx] > 0) begin
-                tower_cooldown[idx] <= tower_cooldown[idx] - 1;
-            end else begin
-                tower_px = tower_x[idx] * TILE_SIZE + 13;
-                tower_py = tower_y[idx] * TILE_SIZE + 13;
-                range = TOWER_RANGE + tower_level[idx] * 20;
-                
-                min_dist = 16'hFFFF;
-                best_target = 255;
-                
-                // Find closest enemy
-                for (j = 0; j < MAX_ENEMIES; j = j + 1) begin
-                    if (enemy_active[j]) begin
-                        dx = $signed({1'b0, enemy_x[j]}) - $signed({1'b0, tower_px});
-                        dy = $signed({1'b0, enemy_y[j]}) - $signed({1'b0, tower_py});
-                        
-                        _dist = (dx[10] ? -dx : dx) + (dy[10] ? -dy : dy);
-                        
-                        if (_dist < range && _dist < min_dist) begin
-                            min_dist = _dist;
-                            best_target = j;
-                        end
-                    end
-                end
-                
-                if (best_target < 255) begin
-                    tower_target[idx] <= best_target;
-                    fire_projectile(tower_px, tower_py, best_target, tower_type[idx], tower_level[idx]);
-                    
-                    // Set cooldown
-                    case (tower_type[idx])
-                        TOWER_BASIC: tower_cooldown[idx] <= 30 - tower_level[idx] * 3;
-                        TOWER_FAST: tower_cooldown[idx] <= 10 - tower_level[idx];
-                        TOWER_HEAVY: tower_cooldown[idx] <= 60 - tower_level[idx] * 5;
-                        TOWER_SLOW: tower_cooldown[idx] <= 40 - tower_level[idx] * 4;
-                    endcase
-                end else begin
-                    tower_target[idx] <= 255;
-                end
-            end
+			if (tower_cooldown[idx] > 0) begin
+				tower_cooldown[idx] <= tower_cooldown[idx] - 1;
+			end else begin
+				tower_px = tower_x[idx] * TILE_SIZE + 13;
+				tower_py = tower_y[idx] * TILE_SIZE + 13;
+				range = TOWER_RANGE + tower_level[idx] * 20;
+				
+				min_dist = 16'hFFFF;
+				best_target = 255;
+				
+				// find closest enemy
+				for (j = 0; j < MAX_ENEMIES; j = j + 1) begin
+					if (enemy_active[j]) begin
+						dx = $signed({1'b0, enemy_x[j]}) - $signed({1'b0, tower_px});
+						dy = $signed({1'b0, enemy_y[j]}) - $signed({1'b0, tower_py});
+						
+						_dist = (dx[10] ? -dx : dx) + (dy[10] ? -dy : dy);
+						
+						if (_dist < range && _dist < min_dist) begin
+							min_dist = _dist;
+							best_target = j;
+						end
+					end
+				end
+				
+				if (best_target < 255) begin
+					tower_target[idx] <= best_target;
+					fire_projectile(tower_px, tower_py, best_target, tower_type[idx], tower_level[idx]);
+					// set cooldown
+					case (tower_type[idx])
+						TOWER_BASIC: tower_cooldown[idx] <= 30 - tower_level[idx] * 3;
+						TOWER_FAST: tower_cooldown[idx] <= 10 - tower_level[idx];
+						TOWER_HEAVY: tower_cooldown[idx] <= 60 - tower_level[idx] * 5;
+						TOWER_SLOW: tower_cooldown[idx] <= 40 - tower_level[idx] * 4;
+					endcase
+				end else begin
+					tower_target[idx] <= 255;
+				end
+			end
         end
     endtask
     
-    // Task to fire a projectile
     task fire_projectile;
         input [9:0] px, py;
         input [7:0] target;
@@ -516,14 +494,13 @@ module main_scene (
         integer k, slot;
 		reg found;
         begin
-            // Find free projectile slot
 			found = 0;
-            for (k = 0; k < MAX_PROJECTILES; k = k + 1) begin
+			for (k = 0; k < MAX_PROJECTILES; k = k + 1) begin
 				if (!found && !proj_active[k]) begin
 					slot = k;
 					found = 1;
 				end
-            end
+			end
 			k = slot;
 			if (found) begin
 				proj_active[k] <= 1;
@@ -533,7 +510,6 @@ module main_scene (
 				proj_target_y[k] <= enemy_y[target];
 				proj_type[k] <= ptype;
 				
-				// Apply damage immediately
 				case (ptype)
 					TOWER_BASIC: damage = 10 + level * 5;
 					TOWER_FAST: damage = 5 + level * 3;
@@ -554,57 +530,54 @@ module main_scene (
         end
     endtask
     
-    // Task to update a single projectile
     task update_projectile;
         input [4:0] idx;
         reg signed [10:0] dx, dy;
         reg [10:0] abs_dx, abs_dy, move_x, move_y;
         begin
-            dx = $signed({1'b0, proj_target_x[idx]}) - $signed({1'b0, proj_x[idx]});
-            dy = $signed({1'b0, proj_target_y[idx]}) - $signed({1'b0, proj_y[idx]});
-            
-            if ((dx[10] ? -dx : dx) < 10 && (dy[10] ? -dy : dy) < 10) begin
-                proj_active[idx] <= 0;
-            end else begin
-                abs_dx = dx[10] ? -dx : dx;
-                abs_dy = dy[10] ? -dy : dy;
-                
-                if (abs_dx > abs_dy) begin
-                    move_x = dx[10] ? -PROJECTILE_SPEED : PROJECTILE_SPEED;
-                    move_y = (PROJECTILE_SPEED * abs_dy) / abs_dx;
-                    if (dy[10]) move_y = -move_y;
-                end else if (abs_dy > 0) begin
-                    move_y = dy[10] ? -PROJECTILE_SPEED : PROJECTILE_SPEED;
-                    move_x = (PROJECTILE_SPEED * abs_dx) / abs_dy;
-                    if (dx[10]) move_x = -move_x;
-                end else begin
-                    move_x = 0;
-                    move_y = 0;
-                end
-                
-                proj_x[idx] <= proj_x[idx] + move_x;
-                proj_y[idx] <= proj_y[idx] + move_y;
-                
-                if (proj_x[idx] > 640 || proj_y[idx] > 480) begin
-                    proj_active[idx] <= 0;
-                end
-            end
+			dx = $signed({1'b0, proj_target_x[idx]}) - $signed({1'b0, proj_x[idx]});
+			dy = $signed({1'b0, proj_target_y[idx]}) - $signed({1'b0, proj_y[idx]});
+			
+			if ((dx[10] ? -dx : dx) < 10 && (dy[10] ? -dy : dy) < 10) begin
+				proj_active[idx] <= 0;
+			end else begin
+				abs_dx = dx[10] ? -dx : dx;
+				abs_dy = dy[10] ? -dy : dy;
+				
+				if (abs_dx > abs_dy) begin
+					move_x = dx[10] ? -PROJECTILE_SPEED : PROJECTILE_SPEED;
+					move_y = (PROJECTILE_SPEED * abs_dy) / abs_dx;
+					if (dy[10]) move_y = -move_y;
+				end else if (abs_dy > 0) begin
+					move_y = dy[10] ? -PROJECTILE_SPEED : PROJECTILE_SPEED;
+					move_x = (PROJECTILE_SPEED * abs_dx) / abs_dy;
+					if (dx[10]) move_x = -move_x;
+				end else begin
+					move_x = 0;
+					move_y = 0;
+				end
+				
+				proj_x[idx] <= proj_x[idx] + move_x;
+				proj_y[idx] <= proj_y[idx] + move_y;
+				
+				if (proj_x[idx] > 640 || proj_y[idx] > 480)
+					proj_active[idx] <= 0;
+			end
         end
     endtask
     
-    // Task to spawn an enemy
     task spawn_enemy;
         reg [19:0] pos;
         integer i, slot;
 		reg found;
         begin
 			found = 0;
-            for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
+			for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
 				if (!found && !enemy_active[i]) begin
 					slot = i;
 					found = 1;
 				end
-            end
+			end
 			i = slot;
 			if (found) begin
 				enemy_active[i] <= 1;
@@ -618,78 +591,130 @@ module main_scene (
 			end
         end
     endtask
+
+	task render_towers;
+		integer i;
+		reg signed [10:0] ndx, ndy;
+		reg signed [10:0] tpx, tpy;
+		reg [9:0] nx, ny;
+		begin
+			for (i = 0; i < MAX_TOWERS; i = i + 1) begin
+				if (tower_active[i] && grid_x == tower_x[i] && grid_y == tower_y[i]) begin
+					if (pixel_x >= 6 && pixel_x <= 19 && pixel_y >= 6 && pixel_y <= 19) begin
+						case (tower_type[i])
+							TOWER_BASIC: begin red = 4'h5; green = 4'h5; blue = 4'hD; end
+							TOWER_FAST: begin red = 4'h5; green = 4'hD; blue = 4'h5; end
+							TOWER_HEAVY: begin red = 4'hD; green = 4'h5; blue = 4'h5; end
+							TOWER_SLOW: begin red = 4'hD; green = 4'h5; blue = 4'hD; end
+						endcase
+					end
+					if (tower_target[i] < MAX_ENEMIES && enemy_active[tower_target[i]]) begin
+						tpx = tower_x[i] * TILE_SIZE + 13;
+						tpy = tower_y[i] * TILE_SIZE + 13;
+						ndx = $signed({1'b0, enemy_x[tower_target[i]]}) - $signed({1'b0, tpx});
+						ndy = $signed({1'b0, enemy_y[tower_target[i]]}) - $signed({1'b0, tpy});
+						if ((ndx[10] ? -ndx : ndx) > (ndy[10] ? -ndy : ndy)) begin
+							nx = tpx + (ndx[10] ? -8 : 8);
+							ny = tpy + (ndy[10] ? -(8 * (ndy[10] ? -ndy : ndy) / (ndx[10] ? -ndx : ndx)) : 
+												   (8 * (ndy[10] ? -ndy : ndy) / (ndx[10] ? -ndx : ndx)));
+						end else begin
+							ny = tpy + (ndy[10] ? -8 : 8);
+							nx = tpx + (ndx[10] ? -(8 * (ndx[10] ? -ndx : ndx) / (ndy[10] ? -ndy : ndy)) : 
+												   (8 * (ndx[10] ? -ndx : ndx) / (ndy[10] ? -ndy : ndy)));
+						end
+						if ((x >= tpx-1 && x <= tpx+1 && y >= tpy-1 && y <= tpy+1) ||
+							(x >= nx-1 && x <= nx+1 && y >= ny-1 && y <= ny+1)) begin
+							red = 4'h8;
+							green = 4'h8;
+							blue = 4'h8;
+						end
+					end
+				end
+			end
+		end
+	endtask
+
+	task render_enemies;
+		integer i;
+		begin
+			for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
+				if (enemy_active[i]) begin
+					if (x >= enemy_x[i]-7 && x <= enemy_x[i]+7 && 
+						y >= enemy_y[i]-7 && y <= enemy_y[i]+7) begin
+						if (enemy_slow[i] > 0) begin
+							red = 4'h7; green = 4'h3; blue = 4'hB;
+						end else begin
+							red = 4'hD; green = 4'h2; blue = 4'h2;
+						end
+					end
+					if (y >= enemy_y[i]-10 && y <= enemy_y[i]-8
+						&& x >= enemy_x[i]-7 && x <= enemy_x[i]+7) begin
+						if ((x - enemy_x[i] + 7) <= {6'b0,
+						(enemy_health[i] * 4'd14) / enemy_max_health[i]}) begin
+							red = 4'h0;
+							green = 4'hD;
+							blue = 4'h0;
+						end else begin
+							red = 4'h3;
+							green = 4'h0;
+							blue = 4'h0;
+						end
+					end
+				end
+			end
+		end
+	endtask
+
+	task render_projectiles;
+		integer i;
+		begin
+			for (i = 0; i < MAX_PROJECTILES; i = i + 1) begin
+				if (proj_active[i]) begin
+					if (x >= proj_x[i]-1 && x <= proj_x[i]+1 && 
+						y >= proj_y[i]-1 && y <= proj_y[i]+1) begin
+						red = 4'hF; green = 4'hF; blue = 4'hF;
+					end
+				end
+            end
+		end
+	endtask
     
-    // Rendering logic (kept similar but simplified)
     wire [4:0] grid_x = x / TILE_SIZE;
     wire [4:0] grid_y = y / TILE_SIZE;
     wire [4:0] pixel_x = x % TILE_SIZE;
     wire [4:0] pixel_y = y % TILE_SIZE;
     
-    // Simplified rendering
-    integer render_i;
     always @* begin
         red = 4'h0;
         green = 4'h0;
         blue = 4'h0;
-        
         if (visible) begin
             case (game_state)
                 STATE_MENU: begin
-                    // Simple menu rendering
                     if (y >= 100 && y < 140 && x >= 160 && x < 480) begin
                         red = 4'hF; green = 4'hF; blue = 4'hF;
                     end
                 end
                 
                 STATE_GAME: begin
-                    // Background and grid
+					// background and grid
                     red = 4'h1; green = 4'h1; blue = 4'h1;
-                    
-                    // Path
+					if (pixel_x == 0 || pixel_y == 0) begin
+						red = 4'h2;
+						green = 4'h2;
+						blue = 4'h2;
+					end
+                   
+					// path
                     if (is_path(x, y)) begin
                         red = 4'h5; green = 4'h3; blue = 4'h2;
                     end
                     
-                    // Render towers
-                    for (render_i = 0; render_i < MAX_TOWERS; render_i = render_i + 1) begin
-                        if (tower_active[render_i] && grid_x == tower_x[render_i] && grid_y == tower_y[render_i]) begin
-                            if (pixel_x >= 6 && pixel_x <= 19 && pixel_y >= 6 && pixel_y <= 19) begin
-                                case (tower_type[render_i])
-                                    TOWER_BASIC: begin red = 4'h5; green = 4'h5; blue = 4'hD; end
-                                    TOWER_FAST: begin red = 4'h5; green = 4'hD; blue = 4'h5; end
-                                    TOWER_HEAVY: begin red = 4'hD; green = 4'h5; blue = 4'h5; end
-                                    TOWER_SLOW: begin red = 4'hD; green = 4'h5; blue = 4'hD; end
-                                endcase
-                            end
-                        end
-                    end
+					render_towers();
+					render_enemies();
+					render_projectiles();
                     
-                    // Render enemies
-                    for (render_i = 0; render_i < MAX_ENEMIES; render_i = render_i + 1) begin
-                        if (enemy_active[render_i]) begin
-							//$display("x = %d, y = %d", enemy_x[render_i], enemy_y[render_i]);
-                            if (x >= enemy_x[render_i]-7 && x <= enemy_x[render_i]+7 && 
-                                y >= enemy_y[render_i]-7 && y <= enemy_y[render_i]+7) begin
-                                if (enemy_slow[render_i] > 0) begin
-                                    red = 4'h7; green = 4'h3; blue = 4'hB;
-                                end else begin
-                                    red = 4'hD; green = 4'h2; blue = 4'h2;
-                                end
-                            end
-                        end
-                    end
-                    
-                    // Render projectiles
-                    for (render_i = 0; render_i < MAX_PROJECTILES; render_i = render_i + 1) begin
-                        if (proj_active[render_i]) begin
-                            if (x >= proj_x[render_i]-1 && x <= proj_x[render_i]+1 && 
-                                y >= proj_y[render_i]-1 && y <= proj_y[render_i]+1) begin
-                                red = 4'hF; green = 4'hF; blue = 4'hF;
-                            end
-                        end
-                    end
-                    
-                    // Cursor
+                    // cursor
                     if (grid_x == cursor_x && grid_y == cursor_y) begin
                         if ((pixel_y == 12 || pixel_y == 13) && pixel_x >= 7 && pixel_x <= 18) begin
                             red = 4'hF; green = 4'hF; blue = 4'h0;
@@ -699,14 +724,13 @@ module main_scene (
                         end
                     end
                     
-                    // UI bar
+                    // ui bar
                     if (y < 25) begin
                         red = 4'h2; green = 4'h2; blue = 4'h2;
                     end
                 end
                 
                 STATE_GAMEOVER: begin
-                    // Game over screen
                     if (y >= 180 && y < 220 && x >= 200 && x < 440) begin
                         red = 4'hF; green = 4'h0; blue = 4'h0;
                     end
