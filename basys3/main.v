@@ -21,7 +21,7 @@ module main_scene (
     localparam GRID_WIDTH = 24;
     localparam GRID_HEIGHT = 18;
     localparam MAX_ENEMIES = 16;
-    localparam MAX_TOWERS = 32;
+    localparam MAX_TOWERS = 16;
     localparam MAX_PROJECTILES = 32;
     localparam TOWER_RANGE = 100;
     localparam PROJECTILE_SPEED = 8;
@@ -31,30 +31,43 @@ module main_scene (
     localparam ENEMY_REWARD = 10;
     localparam TOWER_SELL_RATIO = 70;
     localparam MAX_LIVES = 10;
+    localparam MAX_HIGHSCORES = 3;
+    localparam [11647:0] ASCII_ROM = 11647'h000000007f7f03060c1830607f7f0000000000001818181818181c3663630000000000006363361c1c1c1c36636300000000000063777f6b636363636363000000000000081c36636363636363630000000000003e7f63636363636363630000000000000c0c0c0c0c0c0c0c7f7f0000000000003e7f60607e3f03037f3e0000000000006363331b3f7f63637f3f00000000000060367f6b636363637f3f000000000000030303033f7f63637f3f0000000000003e7f6363636363637f3e000000000000636363737b7f6f67636300000000000063636363636b7f7763630000000000007f7f030303030303030300000000000063331b0f07070f1b33630000000000001e1f1818181818187f7f0000000000007f7f0c0c0c0c0c0c7f7f000000000000636363637f7f636363630000000000006e7f63637f7f03037f3e000000000000030303033f3f03037f7f0000000000007f7f03033f3f03037f7f0000000000003f7f6363636363637f3f0000000000003e7f0303030303037f3e0000000000003f7f63633f3f63637f3f0000000000006363637f7f6363361c080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007e007e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018180000181800000000000000007f7f60607f7f63637f7f0000000000007f7f63637f7f63637f7f00000000000060606060606060607f7f0000000000007f7f63637f7f03037f7f0000000000007f7f60607f7f03037f7f000000000000606060607f7f636363630000000000007f7f60607c7c60607f7f0000000000007f7f03037f7f60607f7f0000000000007e7e18181818181e1c180000000000001c36636363636363361c000000000000000000000000000000000000000000001818000000000000000000000000000000000000007e000000000000000000000000000000000000000000000000000000000808087f0808080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018180018181818181800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007e818199bd8181a5817e000000000000000000000000000000000000;
     
     localparam STATE_MENU = 0;
     localparam STATE_GAME = 1;
     localparam STATE_SHOP = 2;
     localparam STATE_GAMEOVER = 3;
     localparam STATE_HIGHSCORE = 4;
+    localparam STATE_TOWER_MENU = 5;
     
     localparam TOWER_BASIC = 0;
     localparam TOWER_FAST = 1;
     localparam TOWER_HEAVY = 2;
     localparam TOWER_SLOW = 3;
     
+    localparam ENEMY_NORMAL = 0;
+
+	localparam REPEAT_RATE = 10;
+    
     reg [2:0] game_state = STATE_MENU;
     reg [15:0] currency = 200;
     reg [7:0] lives = MAX_LIVES;
     reg [31:0] score = 0;
-    reg [31:0] highscore = 0;
+    reg [31:0] highscores [0:MAX_HIGHSCORES-1];
     reg [15:0] wave_number = 0;
     reg [19:0] frame_counter = 0;
     reg [19:0] spawn_timer = 0;
+    reg [7:0] enemies_in_wave = 0;
+    reg [7:0] enemies_spawned = 0;
     reg paused = 0;
     
     reg [4:0] cursor_x = 12;
     reg [4:0] cursor_y = 9;
+    reg [1:0] menu_selection = 0;
+    reg [1:0] shop_selection = 0;
+    reg [4:0] selected_tower_idx = 0;
+    reg show_tower_range = 0;
     
     reg btnU_prev = 0;
     reg btnD_prev = 0;
@@ -65,9 +78,9 @@ module main_scene (
     reg btn2_prev = 0;
     reg btn3_prev = 0;
     reg btn4_prev = 0;
-    reg [3:0] btn_delay = 0;
+    reg [5:0] btn_delay = 0;
 
-	reg text_hit;
+    reg text_hit;
     reg [3:0] text_r, text_g, text_b;
 
     reg [1:0] selected_tower_type = TOWER_BASIC;
@@ -79,6 +92,7 @@ module main_scene (
     reg enemy_active [0:MAX_ENEMIES-1];
     reg [15:0] enemy_progress [0:MAX_ENEMIES-1];
     reg [7:0] enemy_slow [0:MAX_ENEMIES-1];
+    reg [1:0] enemy_type [0:MAX_ENEMIES-1];
     
     reg [4:0] tower_x [0:MAX_TOWERS-1];
     reg [4:0] tower_y [0:MAX_TOWERS-1];
@@ -119,51 +133,64 @@ module main_scene (
     
     function is_text_pixel;
         input [9:0] px, py;
-        input [9:0] rect_x, rect_y;
-        input [9:0] rect_w, rect_h;
+        input [9:0] text_x, text_y;
         input [7:0] char_code;
-        input [2:0] char_idx;
-        reg [6:0] rel_x, rel_y;
-        reg [3:0] glyph_x, glyph_y;
-        reg [3:0] char_col;
-        reg [9:0] char_start_x;
+        reg [3:0] glyph_x;
+        reg [4:0] glyph_y;
+        reg [6:0] char_offset;
         begin
             is_text_pixel = 0;
-            if (px >= rect_x && px < rect_x + rect_w &&
-                py >= rect_y && py < rect_y + rect_h) begin
-                rel_x = px - rect_x;
-                rel_y = py - rect_y;
-                char_col = rel_x / 8;
-                if (char_col == char_idx) begin
-                    glyph_x = rel_x % 8;
-                    glyph_y = rel_y % 8;
-                    
-                    // is_text_pixel = glyph_rom[char_code][glyph_y][glyph_x];
-					// garbage below
-                    if (glyph_y == 0 || glyph_y == 7 || glyph_x == 0 || glyph_x == 7)
-                        is_text_pixel = 1;
-                end
+            if (px >= text_x && px < text_x + 8 && py >= text_y && py < text_y + 16) begin
+                glyph_x = px - text_x;
+                glyph_y = py - text_y;
+                is_text_pixel = ASCII_ROM[char_code * 128 + glyph_y * 8 + glyph_x];
             end
         end
     endfunction
 
     task render_text;
         input [9:0] px, py;
-        input [9:0] rect_x, rect_y, rect_w, rect_h;
-        input [63:0] text;
-        input [3:0] text_len;
+        input [9:0] start_x, start_y;
+        input [255:0] text_str;
+        input [4:0] text_len;
         output hit;
         output [3:0] out_r, out_g, out_b;
+        integer i;
+        reg [7:0] char;
+        begin
+            hit = 0;
+            out_r = 4'hF;
+            out_g = 4'hF;
+            out_b = 4'hF;
+            for (i = 0; i < text_len && i < 32; i = i + 1) begin
+                char = text_str[(text_len - 1 - i) * 8 +: 8];
+                if (is_text_pixel(px, py, start_x + i * 8, start_y, char)) begin
+                    hit = 1;
+                end
+            end
+        end
+    endtask
+    
+    task render_number;
+        input [9:0] px, py;
+        input [9:0] start_x, start_y;
+        input [31:0] num;
+        input [3:0] digits;
+        output hit;
+        output [3:0] out_r, out_g, out_b;
+        reg [31:0] temp;
+        reg [3:0] digit;
         integer i;
         begin
             hit = 0;
             out_r = 4'hF;
             out_g = 4'hF;
             out_b = 4'hF;
-            
-            for (i = 0; i < text_len && i < 8; i = i + 1) begin
-                if (is_text_pixel(px, py, rect_x, rect_y, rect_w, rect_h, 
-                                 text[i*8 +: 8], i)) begin
+            temp = num;
+            for (i = digits - 1; i >= 0; i = i - 1) begin
+                digit = temp % 10;
+                temp = temp / 10;
+                if (is_text_pixel(px, py, start_x + i * 8, start_y, 48 + digit)) begin
                     hit = 1;
                 end
             end
@@ -216,6 +243,59 @@ module main_scene (
         end
     endfunction
     
+	function is_range_pixel;
+        input [9:0] px, py;
+        input [9:0] cx, cy;
+        input [9:0] range;
+        reg signed [10:0] dx, dy;
+        reg [19:0] dist_sq, range_sq, inner_sq;
+        begin
+            dx = $signed({1'b0, px}) - $signed({1'b0, cx});
+            dy = $signed({1'b0, py}) - $signed({1'b0, cy});
+            //dist_sq = abs(dx)+abs(dy);//dx * dx + dy * dy;
+            dist_sq = dx * dx + dy * dy;
+            range_sq = range * range;
+            inner_sq = (range - 2) * (range - 2);
+            is_range_pixel = (dist_sq <= range_sq) && (dist_sq >= inner_sq);
+        end
+    endfunction
+    
+    function [15:0] get_tower_cost;
+        input [1:0] ttype;
+        begin
+            case (ttype)
+                TOWER_BASIC: get_tower_cost = 50;
+                TOWER_FAST: get_tower_cost = 75;
+                TOWER_HEAVY: get_tower_cost = 150;
+                TOWER_SLOW: get_tower_cost = 100;
+            endcase
+        end
+    endfunction
+    
+    function [31:0] get_enemy_stats;
+        input [1:0] etype;
+        input [15:0] wave;
+        reg [15:0] health;
+        reg [7:0] speed;
+        reg [7:0] reward;
+        begin
+            case (etype)
+                ENEMY_NORMAL: begin
+                    health = 20 + wave * 5;
+                    speed = 1;
+                    reward = 10 + wave / 4;
+                end
+				/*
+                ENEMY_HEAVY: begin
+                    health = 40 + wave * 8;
+                    speed = 1;
+                    reward = 20 + wave / 2;
+                end*/
+            endcase
+            get_enemy_stats = {8'b0, reward, speed, health};
+        end
+    endfunction
+    
     integer init_i;
     initial begin
         for (init_i = 0; init_i < MAX_ENEMIES; init_i = init_i + 1) begin
@@ -226,6 +306,9 @@ module main_scene (
         end
         for (init_i = 0; init_i < MAX_PROJECTILES; init_i = init_i + 1) begin
             proj_active[init_i] = 0;
+        end
+        for (init_i = 0; init_i < MAX_HIGHSCORES; init_i = init_i + 1) begin
+            highscores[init_i] = 0;
         end
         game_clk_div = GAME_DIV-1;
     end
@@ -242,6 +325,8 @@ module main_scene (
             frame_counter <= 0;
             process_state <= PROC_IDLE;
             process_index <= 0;
+            enemies_in_wave <= 5;
+            enemies_spawned <= 0;
             
             for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
                 enemy_active[i] <= 0;
@@ -258,6 +343,23 @@ module main_scene (
             
             for (i = 0; i < MAX_PROJECTILES; i = i + 1) begin
                 proj_active[i] <= 0;
+            end
+        end
+    endtask
+    
+    task update_highscores;
+        integer i;
+        reg [31:0] temp;
+        begin
+            if (score > highscores[2]) begin
+                highscores[2] <= score;
+                for (i = 2; i > 0; i = i - 1) begin
+                    if (highscores[i] > highscores[i-1]) begin
+                        temp = highscores[i];
+                        highscores[i] <= highscores[i-1];
+                        highscores[i-1] <= temp;
+                    end
+                end
             end
         end
     endtask
@@ -295,33 +397,44 @@ module main_scene (
                     end
                 end
                 
-                if (position_empty && currency >= TOWER_COST) begin
-                    found = 0;
-                    for (i = 0; i < MAX_TOWERS; i = i + 1) begin
-                        if (!found && !tower_active[i]) begin
-                            slot = i;
-                            found = 1;
-                        end
+                if (position_empty) begin
+                    game_state <= STATE_SHOP;
+                    shop_selection <= 0;
+                end else begin
+                    selected_tower_idx <= tower_idx;
+                    game_state <= STATE_TOWER_MENU;
+                    menu_selection <= 0;
+                end
+            end
+        end
+    endtask
+    
+    task place_tower;
+        input [1:0] ttype;
+        reg [15:0] cost;
+        integer i, slot;
+        reg found;
+        begin
+            cost = get_tower_cost(ttype);
+            if (currency >= cost) begin
+                found = 0;
+                for (i = 0; i < MAX_TOWERS; i = i + 1) begin
+                    if (!found && !tower_active[i]) begin
+                        slot = i;
+                        found = 1;
                     end
-                    i = slot;
-                    if (found) begin
-                        tower_active[i] <= 1;
-                        tower_x[i] <= cursor_x;
-                        tower_y[i] <= cursor_y;
-                        tower_type[i] <= selected_tower_type;
-                        tower_level[i] <= 0;
-                        tower_cooldown[i] <= 0;
-                        tower_target[i] <= 255;
-                        currency <= currency - TOWER_COST;
-                    end
-                end else if (!position_empty && btnL && tower_idx < MAX_TOWERS) begin
-                    currency <= currency + (TOWER_COST + tower_level[tower_idx] * TOWER_UPGRADE_COST) * TOWER_SELL_RATIO / 100;
-                    tower_active[tower_idx] <= 0;
-                end else if (!position_empty && btnR && currency >= TOWER_UPGRADE_COST && tower_idx < MAX_TOWERS) begin
-                    if (tower_level[tower_idx] < 3) begin
-                        tower_level[tower_idx] <= tower_level[tower_idx] + 1;
-                        currency <= currency - TOWER_UPGRADE_COST;
-                    end
+                end
+                i = slot;
+                if (found) begin
+                    tower_active[i] <= 1;
+                    tower_x[i] <= cursor_x;
+                    tower_y[i] <= cursor_y;
+                    tower_type[i] <= ttype;
+                    tower_level[i] <= 0;
+                    tower_cooldown[i] <= 0;
+                    tower_target[i] <= 255;
+                    currency <= currency - cost;
+                    game_state <= STATE_GAME;
                 end
             end
         end
@@ -330,13 +443,18 @@ module main_scene (
     task update_enemy;
         input [4:0] idx;
         reg [19:0] pos;
+        reg [31:0] stats;
+        reg [7:0] speed;
         begin
+            stats = get_enemy_stats(enemy_type[idx], wave_number);
+            speed = stats[23:16];
+            
             if (enemy_slow[idx] > 0) begin
                 enemy_slow[idx] <= enemy_slow[idx] - 1;
                 if (frame_counter[0] == 0)
-                    enemy_progress[idx] <= enemy_progress[idx] + ENEMY_SPEED;
+                    enemy_progress[idx] <= enemy_progress[idx] + speed;
             end else begin
-                enemy_progress[idx] <= enemy_progress[idx] + ENEMY_SPEED + (wave_number >> 3);
+                enemy_progress[idx] <= enemy_progress[idx] + speed;
             end
             
             pos = get_enemy_position(enemy_progress[idx]);
@@ -346,16 +464,15 @@ module main_scene (
             if (enemy_progress[idx] > 2200) begin
                 enemy_active[idx] <= 0;
                 lives <= (lives > 0) ? lives - 1 : 0;
-                if (lives == 1) begin
+                if (lives == 0) begin
                     game_state <= STATE_GAMEOVER;
-                    if (score > highscore)
-                        highscore <= score;
+                    update_highscores();
                 end
             end
             
             if (enemy_health[idx] == 0) begin
                 enemy_active[idx] <= 0;
-                currency <= currency + ENEMY_REWARD + (wave_number >> 2);
+                currency <= currency + stats[31:24];
                 score <= score + 10 + wave_number;
             end
         end
@@ -496,9 +613,25 @@ module main_scene (
     
     task spawn_enemy;
         reg [19:0] pos;
+        reg [1:0] etype;
+        reg [31:0] stats;
         integer i, slot;
         reg found;
         begin
+			etype = ENEMY_NORMAL;
+            /*if (wave_number < 5) begin
+                etype = ENEMY_NORMAL;
+            end else if (wave_number < 10) begin
+                etype = (enemies_spawned[0] ? ENEMY_FAST : ENEMY_NORMAL);
+            end else if (wave_number < 15) begin
+                etype = (enemies_spawned % 3 == 0) ? ENEMY_HEAVY : 
+                       (enemies_spawned[0] ? ENEMY_FAST : ENEMY_NORMAL);
+            end else if (wave_number % 10 == 0) begin
+                etype = ENEMY_BOSS;
+            end else begin
+                etype = enemies_spawned[1:0];
+            end*/
+            
             found = 0;
             for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
                 if (!found && !enemy_active[i]) begin
@@ -508,14 +641,17 @@ module main_scene (
             end
             i = slot;
             if (found) begin
+                stats = get_enemy_stats(etype, wave_number);
                 enemy_active[i] <= 1;
+                enemy_type[i] <= etype;
                 enemy_progress[i] <= 0;
-                enemy_health[i] <= 25 + wave_number * 10;
-                enemy_max_health[i] <= 25 + wave_number * 10;
+                enemy_health[i] <= stats[15:0];
+                enemy_max_health[i] <= stats[15:0];
                 enemy_slow[i] <= 0;
                 pos = get_enemy_position(0);
                 enemy_x[i] <= pos[19:10];
                 enemy_y[i] <= pos[9:0];
+                enemies_spawned <= enemies_spawned + 1;
             end
         end
     endtask
@@ -524,7 +660,7 @@ module main_scene (
         if (game_clk_div == 0) begin
             game_clk_div <= GAME_DIV-1;
         end else begin
-            game_clk_div <= game_clk_div-1;
+            game_clk_div <= game_clk_div - 1;
         end
         
         if (new_frame) begin
@@ -544,11 +680,31 @@ module main_scene (
             if (btn_delay > 0)
                 btn_delay <= btn_delay - 1;
             
+            show_tower_range <= 0;
+            begin: check_tower_range
+                integer i;
+                for (i = 0; i < MAX_TOWERS; i = i + 1) begin
+                    if (tower_active[i] && tower_x[i] == cursor_x && tower_y[i] == cursor_y) begin
+                        show_tower_range <= 1;
+                        selected_tower_idx <= i;
+                    end
+                end
+            end
+            
             case (game_state)
                 STATE_MENU: begin
+                    if (btnU_pressed && menu_selection > 0) menu_selection <= menu_selection - 1;
+                    if (btnD_pressed && menu_selection < 1) menu_selection <= menu_selection + 1;
+                    
                     if (btnC_pressed) begin
-                        game_state <= STATE_GAME;
-                        reset_game_state();
+                        case (menu_selection)
+                            0: begin
+                                game_state <= STATE_GAME;
+                                reset_game_state();
+                            end
+                            1: game_state <= STATE_HIGHSCORE;
+                            2: ;
+                        endcase
                     end
                 end
                 
@@ -560,29 +716,62 @@ module main_scene (
                     if (!paused) begin
                         if ((btnU_pressed || (btnU && btn_delay == 0)) && cursor_y > 0) begin
                             cursor_y <= cursor_y - 1;
-                            btn_delay <= btnU_pressed ? 0 : 3;
+                            btn_delay <= btnU_pressed ? 0 : REPEAT_RATE;
                         end
                         if ((btnD_pressed || (btnD && btn_delay == 0)) && cursor_y < GRID_HEIGHT-1) begin
                             cursor_y <= cursor_y + 1;
-                            btn_delay <= btnD_pressed ? 0 : 3;
+                            btn_delay <= btnD_pressed ? 0 : REPEAT_RATE;
                         end
                         if ((btnL_pressed || (btnL && btn_delay == 0)) && cursor_x > 0) begin
                             cursor_x <= cursor_x - 1;
-                            btn_delay <= btnL_pressed ? 0 : 3;
+                            btn_delay <= btnL_pressed ? 0 : REPEAT_RATE;
                         end
                         if ((btnR_pressed || (btnR && btn_delay == 0)) && cursor_x < GRID_WIDTH-1) begin
                             cursor_x <= cursor_x + 1;
-                            btn_delay <= btnR_pressed ? 0 : 3;
+                            btn_delay <= btnR_pressed ? 0 : REPEAT_RATE;
                         end
-                        
-                        if (btn1_pressed) selected_tower_type <= TOWER_BASIC;
-                        if (btn2_pressed) selected_tower_type <= TOWER_FAST;
-                        if (btn3_pressed) selected_tower_type <= TOWER_HEAVY;
-                        if (btn4_pressed && !btnC) selected_tower_type <= TOWER_SLOW;
                         
                         if (btnC_pressed) begin
                             handle_tower_action();
                         end
+                    end
+                end
+                
+                STATE_SHOP: begin
+                    if (btnU_pressed && shop_selection > 0) shop_selection <= shop_selection - 1;
+                    if (btnD_pressed && shop_selection < 3) shop_selection <= shop_selection + 1;
+                    
+                    if (btnC_pressed) begin
+                        place_tower(shop_selection);
+                    end
+                    
+                    if (btn4_pressed || btnL_pressed || btnR_pressed) begin
+                        game_state <= STATE_GAME;
+                    end
+                end
+                
+                STATE_TOWER_MENU: begin
+                    if (btnU_pressed && menu_selection > 0) menu_selection <= menu_selection - 1;
+                    if (btnD_pressed && menu_selection < 1) menu_selection <= menu_selection + 1;
+                    
+                    if (btnC_pressed && selected_tower_idx < MAX_TOWERS) begin
+                        case (menu_selection)
+                            0: begin // upgrade
+                                if (currency >= TOWER_UPGRADE_COST && tower_level[selected_tower_idx] < 3) begin
+                                    tower_level[selected_tower_idx] <= tower_level[selected_tower_idx] + 1;
+                                    currency <= currency - TOWER_UPGRADE_COST;
+                                end
+                            end
+                            1: begin // sell
+                                currency <= currency + (TOWER_COST + tower_level[selected_tower_idx] * TOWER_UPGRADE_COST) * TOWER_SELL_RATIO / 100;
+                                tower_active[selected_tower_idx] <= 0;
+                            end
+                        endcase
+                        game_state <= STATE_GAME;
+                    end
+                    
+                    if (btn4_pressed || btnL_pressed || btnR_pressed) begin
+                        game_state <= STATE_GAME;
                     end
                 end
                 
@@ -644,10 +833,25 @@ module main_scene (
                 
                 PROC_SPAWN: begin
                     spawn_timer <= spawn_timer + 1;
-                    if (spawn_timer >= 30) begin
+                    if (spawn_timer >= 60 - (wave_number / 2)) begin
                         spawn_timer <= 0;
-                        spawn_enemy();
-                        wave_number <= wave_number + 1;
+                        if (enemies_spawned < enemies_in_wave) begin
+                            spawn_enemy();
+                        end else begin
+                            begin: check_wave_complete
+                                integer i;
+                                reg all_clear;
+                                all_clear = 1;
+                                for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
+                                    if (enemy_active[i]) all_clear = 0;
+                                end
+                                if (all_clear) begin
+                                    wave_number <= wave_number + 1;
+                                    enemies_in_wave <= 5 + wave_number / 2;
+                                    enemies_spawned <= 0;
+                                end
+                            end
+                        end
                     end
                     process_state <= PROC_IDLE;
                 end
@@ -663,15 +867,19 @@ module main_scene (
     reg enemy_hit;
     reg tower_hit;
     reg proj_hit;
+    reg nozzle_hit;
     reg [3:0] obj_red;
     reg [3:0] obj_green;
     reg [3:0] obj_blue;
-    integer render_i;
+    integer ri;
     
     wire [2:0] check_zone_x;
     wire [2:0] check_zone_y;
     reg [5:0] obj_idx;
     reg [2:0] zone_offset;
+    reg [9:0] range;
+	reg [9:0] tx, ty, ex, ey;
+	reg signed [10:0] dx, dy;
     
     always @* begin
         red = 4'h0;
@@ -680,6 +888,7 @@ module main_scene (
         enemy_hit = 0;
         tower_hit = 0;
         proj_hit = 0;
+        nozzle_hit = 0;
         obj_red = 4'h0;
         obj_green = 4'h0;
         obj_blue = 4'h0;
@@ -687,8 +896,25 @@ module main_scene (
         if (visible) begin
             case (game_state)
                 STATE_MENU: begin
-                    if (y >= 100 && y < 140 && x >= 160 && x < 480) begin
-                        red = 4'hF; green = 4'hF; blue = 4'hF;
+                    red = 4'h1; green = 4'h1; blue = 4'h2;
+                    
+                    render_text(x, y, 250, 100, "TOWER DEFENSE!", 14, text_hit, text_r, text_g, text_b);
+                    if (text_hit) begin
+                        red = text_r; green = text_g; blue = text_b;
+                    end
+                    
+                    render_text(x, y, 260, 150, "NEW GAME", 8, text_hit, text_r, text_g, text_b);
+                    if (text_hit) begin
+                        red = (menu_selection == 0) ? 4'hF : 4'h8;
+                        green = (menu_selection == 0) ? 4'hF : 4'h8;
+                        blue = (menu_selection == 0) ? 4'h0 : 4'h8;
+                    end
+                    
+                    render_text(x, y, 260, 180, "HIGH SCORES", 11, text_hit, text_r, text_g, text_b);
+                    if (text_hit) begin
+                        red = (menu_selection == 1) ? 4'hF : 4'h8;
+                        green = (menu_selection == 1) ? 4'hF : 4'h8;
+                        blue = (menu_selection == 1) ? 4'h0 : 4'h8;
                     end
                 end
                 
@@ -702,27 +928,31 @@ module main_scene (
                         red = 4'h5; green = 4'h3; blue = 4'h2;
                     end
                     
-                    for (render_i = 0; render_i < MAX_ENEMIES; render_i = render_i + 1) begin
-                        if (enemy_active[render_i] && !enemy_hit) begin
-                            if ((enemy_x[render_i] / ZONE_SIZE >= (zone_x > 0 ? zone_x - 1 : 0)) &&
-                                (enemy_x[render_i] / ZONE_SIZE <= (zone_x < ZONES_X - 1 ? zone_x + 1 : ZONES_X - 1)) &&
-                                (enemy_y[render_i] / ZONE_SIZE >= (zone_y > 0 ? zone_y - 1 : 0)) &&
-                                (enemy_y[render_i] / ZONE_SIZE <= (zone_y < ZONES_Y - 1 ? zone_y + 1 : ZONES_Y - 1))) begin
+                    for (ri = 0; ri < MAX_ENEMIES; ri = ri + 1) begin
+                        if (enemy_active[ri] && !enemy_hit) begin
+                            if ((enemy_x[ri] / ZONE_SIZE >= (zone_x > 0 ? zone_x - 1 : 0)) &&
+                                (enemy_x[ri] / ZONE_SIZE <= (zone_x < ZONES_X - 1 ? zone_x + 1 : ZONES_X - 1)) &&
+                                (enemy_y[ri] / ZONE_SIZE >= (zone_y > 0 ? zone_y - 1 : 0)) &&
+                                (enemy_y[ri] / ZONE_SIZE <= (zone_y < ZONES_Y - 1 ? zone_y + 1 : ZONES_Y - 1))) begin
 
-                                if (x >= enemy_x[render_i]-7 && x <= enemy_x[render_i]+7 && 
-                                    y >= enemy_y[render_i]-7 && y <= enemy_y[render_i]+7) begin
+                                if (x >= enemy_x[ri]-7 && x <= enemy_x[ri]+7 && 
+                                    y >= enemy_y[ri]-7 && y <= enemy_y[ri]+7) begin
                                     enemy_hit = 1;
-                                    if (enemy_slow[render_i] > 0) begin
-                                        obj_red = 4'h7; obj_green = 4'h3; obj_blue = 4'hB;
-                                    end else begin
-                                        obj_red = 4'hD; obj_green = 4'h2; obj_blue = 4'h2;
-                                    end
+                                    case (enemy_type[ri])
+                                        ENEMY_NORMAL: begin
+                                            if (enemy_slow[ri] > 0) begin
+                                                obj_red = 4'h7; obj_green = 4'h3; obj_blue = 4'hB;
+                                            end else begin
+                                                obj_red = 4'hD; obj_green = 4'h2; obj_blue = 4'h2;
+                                            end
+                                        end
+                                    endcase
                                 end
                                 
-                                if (y >= enemy_y[render_i]-10 && y <= enemy_y[render_i]-8 &&
-                                    x >= enemy_x[render_i]-7 && x <= enemy_x[render_i]+7 && !enemy_hit) begin
+                                if (y >= enemy_y[ri]-10 && y <= enemy_y[ri]-8 &&
+                                    x >= enemy_x[ri]-7 && x <= enemy_x[ri]+7 && !enemy_hit) begin
                                     enemy_hit = 1;
-                                    if ((x - enemy_x[render_i] + 7) <= {6'b0, (enemy_health[render_i] * 4'd14) / enemy_max_health[render_i]}) begin
+                                    if ((x - enemy_x[ri] + 7) <= {6'b0, (enemy_health[ri] * 4'd14) / enemy_max_health[ri]}) begin
                                         obj_red = 4'h0; obj_green = 4'hD; obj_blue = 4'h0;
                                     end else begin
                                         obj_red = 4'h3; obj_green = 4'h0; obj_blue = 4'h0;
@@ -732,12 +962,12 @@ module main_scene (
                         end
                     end
 
-                    for (render_i = 0; render_i < MAX_TOWERS; render_i = render_i + 1) begin
-                        if (tower_active[render_i] && !tower_hit && !enemy_hit) begin
-                            if (grid_x == tower_x[render_i] && grid_y == tower_y[render_i]) begin
+                    for (ri = 0; ri < MAX_TOWERS; ri = ri + 1) begin
+                        if (tower_active[ri] && !tower_hit && !enemy_hit) begin
+                            if (grid_x == tower_x[ri] && grid_y == tower_y[ri]) begin
                                 if (pixel_x >= 6 && pixel_x <= 19 && pixel_y >= 6 && pixel_y <= 19) begin
                                     tower_hit = 1;
-                                    case (tower_type[render_i])
+                                    case (tower_type[ri])
                                         TOWER_BASIC: begin obj_red = 4'h5; obj_green = 4'h5; obj_blue = 4'hD; end
                                         TOWER_FAST: begin obj_red = 4'h5; obj_green = 4'hD; obj_blue = 4'h5; end
                                         TOWER_HEAVY: begin obj_red = 4'hD; obj_green = 4'h5; obj_blue = 4'h5; end
@@ -745,12 +975,52 @@ module main_scene (
                                     endcase
                                 end
                             end
+                           
+							// broken nozzle
+                            /*if (tower_target[ri] < MAX_ENEMIES && enemy_active[tower_target[ri]]) begin
+                                tx = tower_x[ri] * TILE_SIZE + 13;
+                                ty = tower_y[ri] * TILE_SIZE + 13;
+                                ex = enemy_x[tower_target[ri]];
+                                ey = enemy_y[tower_target[ri]];
+                                dx = $signed({1'b0, ex}) - $signed({1'b0, tx});
+                                dy = $signed({1'b0, ey}) - $signed({1'b0, ty});
+                                if (!nozzle_hit && !enemy_hit && !tower_hit) begin
+                                    if ((dx[10] ? -dx : dx) > (dy[10] ? -dy : dy)) begin
+                                        if (dx[10]) begin
+                                            if (x >= tx - 12 && x <= tx - 8 && y >= ty - 2 && y <= ty + 2) nozzle_hit = 1;
+                                        end else begin
+                                            if (x >= tx + 8 && x <= tx + 12 && y >= ty - 2 && y <= ty + 2) nozzle_hit = 1;
+                                        end
+                                    end else begin
+                                        if (dy[10]) begin
+                                            if (x >= tx - 2 && x <= tx + 2 && y >= ty - 12 && y <= ty - 8) nozzle_hit = 1;
+                                        end else begin
+                                            if (x >= tx - 2 && x <= tx + 2 && y >= ty + 8 && y <= ty + 12) nozzle_hit = 1;
+                                        end
+                                    end
+                                    if (nozzle_hit) begin
+                                        obj_red = 4'h8; obj_green = 4'h8; obj_blue = 4'h8;
+                                    end
+                                end
+                            end*/
                         end
                     end
+                    
+                    if (show_tower_range && selected_tower_idx < MAX_TOWERS && tower_active[selected_tower_idx]) begin
+                        tx = tower_x[selected_tower_idx] * TILE_SIZE + 13;
+                        ty = tower_y[selected_tower_idx] * TILE_SIZE + 13;
+                        range = TOWER_RANGE + tower_level[selected_tower_idx] * 20;
+                        
+						if (!enemy_hit && !tower_hit && !proj_hit && !nozzle_hit) begin
+							if (is_range_pixel(x, y, tx, ty, range)) begin
+                                red = 4'h8; green = 4'h8; blue = 4'h0;
+							end
+						end
+                    end
 
-                    for (render_i = 0; render_i < 8; render_i = render_i + 1) begin
-                        obj_idx = (render_i + (frame_odd ? 8 : 0)) % MAX_PROJECTILES;
-                        if (proj_active[obj_idx] && !proj_hit && !enemy_hit && !tower_hit) begin
+                    for (ri = 0; ri < 8; ri = ri + 1) begin
+                        obj_idx = (ri + (frame_odd ? 8 : 0)) % MAX_PROJECTILES;
+                        if (proj_active[obj_idx] && !proj_hit && !enemy_hit && !tower_hit && !nozzle_hit) begin
                             if (x >= proj_x[obj_idx]-1 && x <= proj_x[obj_idx]+1 && 
                                 y >= proj_y[obj_idx]-1 && y <= proj_y[obj_idx]+1) begin
                                 proj_hit = 1;
@@ -759,7 +1029,7 @@ module main_scene (
                         end
                     end
                     
-                    if (enemy_hit || tower_hit || proj_hit) begin
+                    if (enemy_hit || tower_hit || proj_hit || nozzle_hit) begin
                         red = obj_red;
                         green = obj_green;
                         blue = obj_blue;
@@ -773,23 +1043,201 @@ module main_scene (
                             red = 4'hF; green = 4'hF; blue = 4'h0;
                         end
                     end
-                    
                     if (y < 25) begin
                         red = 4'h2; green = 4'h2; blue = 4'h2;
+                        
+                        render_text(x, y, 10, 5, "WAVE:", 5, text_hit, text_r, text_g, text_b);
+                        if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
+                        render_number(x, y, 50, 5, wave_number, 3, text_hit, text_r, text_g, text_b);
+                        if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
+                        
+                        render_text(x, y, 150, 5, "LIVES:", 6, text_hit, text_r, text_g, text_b);
+                        if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
+                        render_number(x, y, 198, 5, lives, 2, text_hit, text_r, text_g, text_b);
+                        if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
+                        
+                        render_text(x, y, 280, 5, "GOLD:", 5, text_hit, text_r, text_g, text_b);
+                        if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
+                        render_number(x, y, 320, 5, currency, 4, text_hit, text_r, text_g, text_b);
+                        if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
+                        
+                        render_text(x, y, 450, 5, "SCORE:", 6, text_hit, text_r, text_g, text_b);
+                        if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
+                        render_number(x, y, 498, 5, score, 5, text_hit, text_r, text_g, text_b);
+                        if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
                     end
                     
-                    render_text(x, y, 10, 5, 64, 15, "SCORE", 5, text_hit, text_r, text_g, text_b);
-                    if (text_hit) begin
-                        red = text_r;
-                        green = text_g;
-                        blue = text_b;
+                    if (paused) begin
+						// remove the space after paused this is
+						// just so text editor doesn't fuck up syntax highlighiting
+                        render_text(x, y, 280, 240, "PAUSED ", 6, text_hit, text_r, text_g, text_b);
+                        if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
                     end
                 end
                 
-                STATE_GAMEOVER: begin
-                    if (y >= 180 && y < 220 && x >= 200 && x < 440) begin
-                        red = 4'hF; green = 4'h0; blue = 4'h0;
+                STATE_SHOP: begin
+                    red = 4'h0; green = 4'h0; blue = 4'h0;
+
+                    if (x >= 170 && x <= 470 && y >= 140 && y <= 340) begin
+                        red = 4'h2; green = 4'h2; blue = 4'h3;
+                        
+                        render_text(x, y, 260, 150, "SELECT TOWER", 12, text_hit, text_r, text_g, text_b);
+                        if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
+                        
+                        render_text(x, y, 190, 190, "BASIC TOWER", 11, text_hit, text_r, text_g, text_b);
+                        if (text_hit) begin
+                            red = (shop_selection == 0) ? 4'hF : 4'h8;
+                            green = (shop_selection == 0) ? 4'hF : 4'h8;
+                            blue = (shop_selection == 0) ? 4'h0 : 4'h8;
+                        end
+                        render_text(x, y, 350, 190, "COST: 50", 8, text_hit, text_r, text_g, text_b);
+                        if (text_hit && currency >= 50) begin
+                            red = 4'h0; green = 4'hF; blue = 4'h0;
+                        end else if (text_hit) begin
+                            red = 4'hF; green = 4'h0; blue = 4'h0;
+                        end
+                        
+                        render_text(x, y, 190, 220, "FAST TOWER", 10, text_hit, text_r, text_g, text_b);
+                        if (text_hit) begin
+                            red = (shop_selection == 1) ? 4'hF : 4'h8;
+                            green = (shop_selection == 1) ? 4'hF : 4'h8;
+                            blue = (shop_selection == 1) ? 4'h0 : 4'h8;
+                        end
+                        render_text(x, y, 350, 220, "COST: 75", 8, text_hit, text_r, text_g, text_b);
+                        if (text_hit && currency >= 75) begin
+                            red = 4'h0; green = 4'hF; blue = 4'h0;
+                        end else if (text_hit) begin
+                            red = 4'hF; green = 4'h0; blue = 4'h0;
+                        end
+                        
+                        render_text(x, y, 190, 250, "HEAVY TOWER", 11, text_hit, text_r, text_g, text_b);
+                        if (text_hit) begin
+                            red = (shop_selection == 2) ? 4'hF : 4'h8;
+                            green = (shop_selection == 2) ? 4'hF : 4'h8;
+                            blue = (shop_selection == 2) ? 4'h0 : 4'h8;
+                        end
+                        render_text(x, y, 350, 250, "COST: 150", 9, text_hit, text_r, text_g, text_b);
+                        if (text_hit && currency >= 150) begin
+                            red = 4'h0; green = 4'hF; blue = 4'h0;
+                        end else if (text_hit) begin
+                            red = 4'hF; green = 4'h0; blue = 4'h0;
+                        end
+                        
+                        render_text(x, y, 190, 280, "SLOW TOWER", 10, text_hit, text_r, text_g, text_b);
+                        if (text_hit) begin
+                            red = (shop_selection == 3) ? 4'hF : 4'h8;
+                            green = (shop_selection == 3) ? 4'hF : 4'h8;
+                            blue = (shop_selection == 3) ? 4'h0 : 4'h8;
+                        end
+                        render_text(x, y, 350, 280, "COST: 100", 9, text_hit, text_r, text_g, text_b);
+                        if (text_hit && currency >= 100) begin
+                            red = 4'h0; green = 4'hF; blue = 4'h0;
+                        end else if (text_hit) begin
+                            red = 4'hF; green = 4'h0; blue = 4'h0;
+                        end
+                        
+                        render_text(x, y, 240, 310, "CENTER BTN TO BUY", 17, text_hit, text_r, text_g, text_b);
+                        if (text_hit) begin red = 4'h8; green = 4'h8; blue = 4'h8; end
                     end
+                end
+                
+                STATE_TOWER_MENU: begin
+                    red = 4'h0; green = 4'h0; blue = 4'h0;
+                    
+                    /*if (x >= 170 && x <= 470 && y >= 140 && y <= 340) begin
+                        red = 4'h2; green = 4'h2; blue = 4'h3;
+                        
+                        render_text(x, y, 260, 150, "TOWER MENU", 10, text_hit, text_r, text_g, text_b);
+                        if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
+                        
+                        if (selected_tower_idx < MAX_TOWERS && tower_active[selected_tower_idx]) begin
+                            render_text(x, y, 190, 190, "LEVEL:", 6, text_hit, text_r, text_g, text_b);
+                            if (text_hit) begin red = 4'hA; green = 4'hA; blue = 4'hA; end
+                            render_number(x, y, 238, 190, tower_level[selected_tower_idx] + 1, 1, text_hit, text_r, text_g, text_b);
+                            if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
+                            
+                            render_text(x, y, 190, 230, "UPGRADE", 7, text_hit, text_r, text_g, text_b);
+                            if (text_hit) begin
+                                red = (menu_selection == 0) ? 4'hF : 4'h8;
+                                green = (menu_selection == 0) ? 4'hF : 4'h8;
+                                blue = (menu_selection == 0) ? 4'h0 : 4'h8;
+                            end
+                            
+                            if (tower_level[selected_tower_idx] < 3) begin
+                                render_text(x, y, 350, 230, "COST:", 5, text_hit, text_r, text_g, text_b);
+                                if (text_hit) begin red = 4'h8; green = 4'h8; blue = 4'h8; end
+                                render_number(x, y, 390, 230, TOWER_UPGRADE_COST, 3, text_hit, text_r, text_g, text_b);
+                                if (text_hit && currency >= TOWER_UPGRADE_COST) begin
+                                    red = 4'h0; green = 4'hF; blue = 4'h0;
+                                end else if (text_hit) begin
+                                    red = 4'hF; green = 4'h0; blue = 4'h0;
+                                end
+                            end else begin
+                                render_text(x, y, 350, 230, "MAX LVL", 7, text_hit, text_r, text_g, text_b);
+                                if (text_hit) begin red = 4'h8; green = 4'h8; blue = 4'h8; end
+                            end
+                            
+                            render_text(x, y, 190, 260, "SELL", 4, text_hit, text_r, text_g, text_b);
+                            if (text_hit) begin
+                                red = (menu_selection == 1) ? 4'hF : 4'h8;
+                                green = (menu_selection == 1) ? 4'hF : 4'h8;
+                                blue = (menu_selection == 1) ? 4'h0 : 4'h8;
+                            end
+                            
+                            render_text(x, y, 350, 260, "VALUE:", 6, text_hit, text_r, text_g, text_b);
+                            if (text_hit) begin red = 4'h8; green = 4'h8; blue = 4'h8; end
+                            render_number(x, y, 398, 260, (TOWER_COST + tower_level[selected_tower_idx] * TOWER_UPGRADE_COST) * TOWER_SELL_RATIO / 100, 3, text_hit, text_r, text_g, text_b);
+                            if (text_hit) begin red = 4'h0; green = 4'hF; blue = 4'h0; end
+                        end
+                        
+                        render_text(x, y, 240, 310, "CENTER BTN TO SELECT", 20, text_hit, text_r, text_g, text_b);
+                        if (text_hit) begin red = 4'h8; green = 4'h8; blue = 4'h8; end
+                    end*/
+                end
+                
+                STATE_GAMEOVER: begin
+                    red = 4'h1; green = 4'h0; blue = 4'h0;
+                    
+                    /*render_text(x, y, 240, 180, "GAME OVER", 9, text_hit, text_r, text_g, text_b);
+                    if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
+                    
+                    render_text(x, y, 240, 220, "FINAL SCORE:", 12, text_hit, text_r, text_g, text_b);
+                    if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
+                    render_number(x, y, 350, 220, score, 5, text_hit, text_r, text_g, text_b);
+                    if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
+                    
+                    render_text(x, y, 240, 250, "WAVE REACHED:", 13, text_hit, text_r, text_g, text_b);
+                    if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
+                    render_number(x, y, 350, 250, wave_number, 3, text_hit, text_r, text_g, text_b);
+                    if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
+                    
+                    render_text(x, y, 220, 300, "CENTER BTN TO CONTINUE", 22, text_hit, text_r, text_g, text_b);
+                    if (text_hit) begin red = 4'h8; green = 4'h8; blue = 4'h8; end*/
+                end
+                
+                STATE_HIGHSCORE: begin
+                    red = 4'h1; green = 4'h1; blue = 4'h2;
+                    
+                    /*render_text(x, y, 240, 80, "HIGH SCORES", 11, text_hit, text_r, text_g, text_b);
+                    if (text_hit) begin red = text_r; green = text_g; blue = text_b; end
+                    
+                    render_text(x, y, 240, 140, "1ST:", 4, text_hit, text_r, text_g, text_b);
+                    if (text_hit) begin red = 4'hF; green = 4'hD; blue = 4'h0; end
+                    render_number(x, y, 300, 140, highscores[0], 6, text_hit, text_r, text_g, text_b);
+                    if (text_hit) begin red = 4'hF; green = 4'hD; blue = 4'h0; end
+                    
+                    render_text(x, y, 240, 180, "2ND:", 4, text_hit, text_r, text_g, text_b);
+                    if (text_hit) begin red = 4'hC; green = 4'hC; blue = 4'hC; end
+                    render_number(x, y, 300, 180, highscores[1], 6, text_hit, text_r, text_g, text_b);
+                    if (text_hit) begin red = 4'hC; green = 4'hC; blue = 4'hC; end
+                    
+                    render_text(x, y, 240, 220, "3RD:", 4, text_hit, text_r, text_g, text_b);
+                    if (text_hit) begin red = 4'h8; green = 4'h4; blue = 4'h0; end
+                    render_number(x, y, 300, 220, highscores[2], 6, text_hit, text_r, text_g, text_b);
+                    if (text_hit) begin red = 4'h8; green = 4'h4; blue = 4'h0; end
+                    
+                    render_text(x, y, 230, 300, "CENTER BTN BACK", 15, text_hit, text_r, text_g, text_b);
+                    if (text_hit) begin red = 4'h8; green = 4'h8; blue = 4'h8; end*/
                 end
             endcase
         end
