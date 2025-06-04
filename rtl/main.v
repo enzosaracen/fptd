@@ -1,3 +1,23 @@
+module font_rom(
+	input wire clk,
+    input wire [7:0] char,
+    input wire [3:0] row,
+    output reg [7:0] bits
+);
+	(* ram_style="block" *) reg [7:0] mem [0:2047];
+
+	localparam [5375:0] FONT_BITS = 5376'h000000001818181818181c3663630000000000006363361c1c1c1c36636300000000000063777f6b636363636363000000000000081c36636363636363630000000000003e7f63636363636363630000000000000c0c0c0c0c0c0c0c7f7f0000000000003e7f60607e3f03037f3e0000000000006363331b3f7f63637f3f00000000000060367f6b636363637f3f000000000000030303033f7f63637f3f0000000000003e7f6363636363637f3e000000000000636363737b7f6f67636300000000000063636363636b7f7763630000000000007f7f030303030303030300000000000063331b0f07070f1b33630000000000001e1f1818181818187f7f0000000000007f7f0c0c0c0c0c0c7f7f000000000000636363637f7f636363630000000000006e7f63637f7f03037f3e000000000000030303033f3f03037f7f0000000000007f7f03033f3f03037f7f0000000000003f7f6363636363637f3f0000000000003e7f0303030303037f3e0000000000003f7f63633f3f63637f3f0000000000006363637f7f6363361c080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007e007e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018180000181800000000000000007f7f60607f7f63637f7f0000000000007f7f63637f7f63637f7f00000000000060606060606060607f7f0000000000007f7f63637f7f03037f7f0000000000007f7f60607f7f03037f7f000000000000606060607f7f636363630000000000007f7f60607c7c60607f7f0000000000007f7f03037f7f60607f7f0000000000007e7e18181818181e1c180000000000001c36636363636363361c0000;
+
+	integer i;
+	initial begin
+		for (i = 0; i < 672; i = i + 1)
+			mem[i] = FONT_BITS[i*8+:8];
+	end
+
+	always @(posedge clk)
+		bits <= mem[{char, row}];
+endmodule
+
 module main_scene (
     input wire clk,
     input wire rst_n,
@@ -21,7 +41,7 @@ module main_scene (
     localparam GRID_WIDTH = 24;
     localparam GRID_HEIGHT = 18;
     localparam MAX_ENEMIES = 16;
-    localparam MAX_TOWERS = 16;
+    localparam MAX_TOWERS = 8;
     localparam MAX_PROJECTILES = 32;
     localparam TOWER_RANGE = 100;
     localparam PROJECTILE_SPEED = 8;
@@ -32,7 +52,6 @@ module main_scene (
     localparam TOWER_SELL_RATIO = 70;
     localparam MAX_LIVES = 10;
     localparam MAX_HIGHSCORES = 3;
-    localparam [11647:0] ASCII_ROM = 11647'h000000007f7f03060c1830607f7f0000000000001818181818181c3663630000000000006363361c1c1c1c36636300000000000063777f6b636363636363000000000000081c36636363636363630000000000003e7f63636363636363630000000000000c0c0c0c0c0c0c0c7f7f0000000000003e7f60607e3f03037f3e0000000000006363331b3f7f63637f3f00000000000060367f6b636363637f3f000000000000030303033f7f63637f3f0000000000003e7f6363636363637f3e000000000000636363737b7f6f67636300000000000063636363636b7f7763630000000000007f7f030303030303030300000000000063331b0f07070f1b33630000000000001e1f1818181818187f7f0000000000007f7f0c0c0c0c0c0c7f7f000000000000636363637f7f636363630000000000006e7f63637f7f03037f3e000000000000030303033f3f03037f7f0000000000007f7f03033f3f03037f7f0000000000003f7f6363636363637f3f0000000000003e7f0303030303037f3e0000000000003f7f63633f3f63637f3f0000000000006363637f7f6363361c080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007e007e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018180000181800000000000000007f7f60607f7f63637f7f0000000000007f7f63637f7f63637f7f00000000000060606060606060607f7f0000000000007f7f63637f7f03037f7f0000000000007f7f60607f7f03037f7f000000000000606060607f7f636363630000000000007f7f60607c7c60607f7f0000000000007f7f03037f7f60607f7f0000000000007e7e18181818181e1c180000000000001c36636363636363361c000000000000000000000000000000000000000000001818000000000000000000000000000000000000007e000000000000000000000000000000000000000000000000000000000808087f0808080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000018180018181818181800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007e818199bd8181a5817e000000000000000000000000000000000000;
     
     localparam STATE_MENU = 0;
     localparam STATE_GAME = 1;
@@ -129,65 +148,114 @@ module main_scene (
     wire [2:0] zone_x = x / ZONE_SIZE;
     wire [2:0] zone_y = y / ZONE_SIZE;
     reg frame_odd = 0;
-    
-    function is_text_pixel;
-        input [9:0] px, py;
-        input [9:0] text_x, text_y;
-        input [7:0] char_code;
-        reg [3:0] glyph_x;
-        reg [4:0] glyph_y;
-        reg [6:0] char_offset;
-        begin
-            is_text_pixel = 0;
-            if (px >= text_x && px < text_x + 8 && py >= text_y && py < text_y + 16) begin
-                glyph_x = px - text_x;
-                glyph_y = py - text_y;
-                is_text_pixel = ASCII_ROM[char_code * 128 + (glyph_y << 3) + glyph_x];
-            end
-        end
-    endfunction
 
-    task render_text;
-        input [9:0] px, py;
-        input [9:0] start_x, start_y;
-        input [255:0] text_str;
-        input [4:0] text_len;
-        output hit;
-        integer i;
-        reg [7:0] char;
-        begin
-            hit = 0;
-            for (i = 0; i < text_len && i < 32; i = i + 1) begin
-                char = text_str[(text_len - 1 - i) << 3 +: 8];
-                if (is_text_pixel(px, py, start_x + (i << 3), start_y, char)) begin
-                    hit = 1;
-                end
-            end
-        end
-    endtask
-    
-    task render_number;
-        input [9:0] px, py;
-        input [9:0] start_x, start_y;
-        input [31:0] num;
-        input [3:0] digits;
-        output hit;
-        reg [31:0] temp;
-        reg [3:0] digit;
-        integer i;
-        begin
-            hit = 0;
-            temp = num;
-            for (i = digits - 1; i >= 0; i = i - 1) begin
-                digit = temp % 10;
-                temp = temp / 10;
-                if (is_text_pixel(px, py, start_x + (i << 3), start_y, 48 + digit)) begin
-                    hit = 1;
-                end
-            end
-        end
-    endtask
-    
+	reg [9:0] x_d, y_d, x_pd, y_pd, x_ppd, y_ppd;
+	reg vis_d, vis_pd, vis_ppd;
+	always @(posedge clk) begin
+		x_ppd <= x;
+		y_ppd <= y;
+		vis_ppd <= visible;
+		x_pd <= x_ppd;
+		y_pd <= y_ppd;
+		vis_pd <= vis_ppd;
+		x_d <= x_pd;
+		y_d <= y_pd;
+		vis_d <= vis_pd;
+	end
+
+	wire [4:0] grid_x_d  = x_d / TILE_SIZE;
+	wire [4:0] grid_y_d  = y_d / TILE_SIZE;
+	wire [4:0] pixel_x_d = x_d % TILE_SIZE;
+	wire [4:0] pixel_y_d = y_d % TILE_SIZE;
+	wire [2:0] zone_x_d  = x_d / ZONE_SIZE;
+	wire [2:0] zone_y_d  = y_d / ZONE_SIZE;
+
+	reg [7:0] glyph_char;
+	reg [3:0] glyph_row;
+	reg [2:0] glyph_col;
+	wire [7:0] glyph_bits;
+
+	font_rom FONT (
+		.clk (clk),
+		.char(glyph_char),
+		.row (glyph_row),
+		.bits(glyph_bits)
+	);
+	reg [2:0] col_r, col_p;
+	reg [7:0] bits_r;
+	wire font_bit;
+
+	always @(posedge clk) begin
+		col_p <= glyph_col;
+		bits_r <= glyph_bits;
+		col_r <= col_p;
+	end
+
+	assign font_bit = bits_r[col_r];
+
+	function is_text_pixel;
+		input [9:0] px, py;
+		input [9:0] text_x, text_y;
+		input [7:0] char_code;
+		begin
+			is_text_pixel = 0;
+			if (px >= text_x && px < text_x + 8 && py >= text_y && py < text_y + 16) begin
+				glyph_col = px - text_x;
+				glyph_row = py - text_y;
+				glyph_char = char_code;
+				is_text_pixel = font_bit;
+			end
+		end
+	endfunction
+
+	task render_text;
+		input [9:0] px, py;
+		input [9:0] start_x, start_y;
+		input [255:0] text_str;
+		input [4:0] text_len;
+		output hit;
+		reg [4:0] idx;
+		reg [7:0] char;
+		begin
+			hit = 0;
+			if (px >= start_x && px < start_x + (text_len << 3)) begin
+				idx = (px - start_x) >> 3;
+				if (idx < text_len) begin
+					char = text_str[((text_len-1-idx)<<3) +: 8]-8'h30;
+					hit = is_text_pixel(px, py, start_x + (idx<<3), start_y, char);
+				end
+			end
+		end
+	endtask
+
+	task render_number;
+		input [9:0] px, py;
+		input [9:0] start_x, start_y;
+		input [31:0] num;
+		input [3:0] digits;
+		output hit;
+		reg [3:0] digit_mem [0:9];
+		reg [31:0] tmp;
+		integer k;
+		reg [4:0] col;
+		reg [7:0] char;
+		begin
+			tmp = num;
+			for (k = digits-1; k >= 0; k = k-1) begin
+				digit_mem[k] = tmp % 10;
+				tmp = tmp / 10;
+			end
+			hit = 0;
+			if (px >= start_x && px < start_x + (digits << 3)) begin
+				col = (px - start_x) >> 3;
+				if (col < digits) begin
+					char = digit_mem[col];
+					hit = is_text_pixel(px, py, start_x + (col<<3), start_y, char);
+				end
+			end
+		end
+	endtask
+
     function is_path;
         input [9:0] px;
         input [9:0] py;
@@ -884,24 +952,23 @@ module main_scene (
         obj_green = 4'h0;
         obj_blue = 4'h0;
         
-        if (visible) begin
+        if (vis_d) begin
             case (game_state)
                 STATE_MENU: begin
                     red = 4'h1; green = 4'h1; blue = 4'h2;
-                    
-                    render_text(x, y, 250, 100, "TOWER DEFENSE!", 14, text_hit);
+                    render_text(x_d, y_d, 250, 100, "TOWER DEFENSE!", 14, text_hit);
 					if (text_hit) begin
 						red = 4'hF; green = 4'hF; blue = 4'hF;
 					end
                     
-                    render_text(x, y, 260, 150, "NEW GAME", 8, text_hit);
+                    render_text(x_d, y_d, 260, 150, "NEW GAME", 8, text_hit);
                     if (text_hit) begin
                         red = (menu_selection == 0) ? 4'hF : 4'h8;
                         green = (menu_selection == 0) ? 4'hF : 4'h8;
                         blue = (menu_selection == 0) ? 4'h0 : 4'h8;
                     end
                     
-                    render_text(x, y, 260, 180, "HIGH SCORES", 11, text_hit);
+                    render_text(x_d, y_d, 260, 180, "HIGH SCORES", 11, text_hit);
                     if (text_hit) begin
                         red = (menu_selection == 1) ? 4'hF : 4'h8;
                         green = (menu_selection == 1) ? 4'hF : 4'h8;
@@ -911,23 +978,23 @@ module main_scene (
                 
                 STATE_GAME: begin
                     red = 4'h1; green = 4'h1; blue = 4'h1;
-                    if (pixel_x == 0 || pixel_y == 0) begin
+                    if (pixel_x_d == 0 || pixel_y_d == 0) begin
                         red = 4'h2; green = 4'h2; blue = 4'h2;
                     end
                     
-                    if (is_path(x, y)) begin
+                    if (is_path(x_d, y_d)) begin
                         red = 4'h5; green = 4'h3; blue = 4'h2;
                     end
                     
                     for (ri = 0; ri < MAX_ENEMIES; ri = ri + 1) begin
                         if (enemy_active[ri] && !enemy_hit) begin
-                            if ((enemy_x[ri] / ZONE_SIZE >= (zone_x > 0 ? zone_x - 1 : 0)) &&
-                                (enemy_x[ri] / ZONE_SIZE <= (zone_x < ZONES_X - 1 ? zone_x + 1 : ZONES_X - 1)) &&
-                                (enemy_y[ri] / ZONE_SIZE >= (zone_y > 0 ? zone_y - 1 : 0)) &&
-                                (enemy_y[ri] / ZONE_SIZE <= (zone_y < ZONES_Y - 1 ? zone_y + 1 : ZONES_Y - 1))) begin
+                            if ((enemy_x[ri] / ZONE_SIZE >= (zone_x_d > 0 ? zone_x_d - 1 : 0)) &&
+                                (enemy_x[ri] / ZONE_SIZE <= (zone_x_d < ZONES_X - 1 ? zone_x_d + 1 : ZONES_X - 1)) &&
+                                (enemy_y[ri] / ZONE_SIZE >= (zone_y_d > 0 ? zone_y_d - 1 : 0)) &&
+                                (enemy_y[ri] / ZONE_SIZE <= (zone_y_d < ZONES_Y - 1 ? zone_y_d + 1 : ZONES_Y - 1))) begin
 
-                                if (x >= enemy_x[ri]-7 && x <= enemy_x[ri]+7 && 
-                                    y >= enemy_y[ri]-7 && y <= enemy_y[ri]+7) begin
+                                if (x_d >= enemy_x[ri]-7 && x_d <= enemy_x[ri]+7 && 
+                                    y_d >= enemy_y[ri]-7 && y_d <= enemy_y[ri]+7) begin
                                     enemy_hit = 1;
                                     case (enemy_type[ri])
                                         ENEMY_NORMAL: begin
@@ -940,10 +1007,10 @@ module main_scene (
                                     endcase
                                 end
                                 
-                                if (y >= enemy_y[ri]-10 && y <= enemy_y[ri]-8 &&
-                                    x >= enemy_x[ri]-7 && x <= enemy_x[ri]+7 && !enemy_hit) begin
+                                if (y_d >= enemy_y[ri]-10 && y_d <= enemy_y[ri]-8 &&
+                                    x_d >= enemy_x[ri]-7 && x_d <= enemy_x[ri]+7 && !enemy_hit) begin
                                     enemy_hit = 1;
-                                    if ((x - enemy_x[ri] + 7) <= {6'b0, (enemy_health[ri] * 4'd14) / enemy_max_health[ri]}) begin
+                                    if ((x_d - enemy_x[ri] + 7) <= {6'b0, (enemy_health[ri] * 4'd14) / enemy_max_health[ri]}) begin
                                         obj_red = 4'h0; obj_green = 4'hD; obj_blue = 4'h0;
                                     end else begin
                                         obj_red = 4'h3; obj_green = 4'h0; obj_blue = 4'h0;
@@ -955,8 +1022,8 @@ module main_scene (
 
                     for (ri = 0; ri < MAX_TOWERS; ri = ri + 1) begin
                         if (tower_active[ri] && !tower_hit && !enemy_hit) begin
-                            if (grid_x == tower_x[ri] && grid_y == tower_y[ri]) begin
-                                if (pixel_x >= 6 && pixel_x <= 19 && pixel_y >= 6 && pixel_y <= 19) begin
+                            if (grid_x_d == tower_x[ri] && grid_y_d == tower_y[ri]) begin
+                                if (pixel_x_d >= 6 && pixel_x_d <= 19 && pixel_y_d >= 6 && pixel_y_d <= 19) begin
                                     tower_hit = 1;
                                     case (tower_type[ri])
                                         TOWER_BASIC: begin obj_red = 4'h5; obj_green = 4'h5; obj_blue = 4'hD; end
@@ -971,22 +1038,22 @@ module main_scene (
                             /*if (tower_target[ri] < MAX_ENEMIES && enemy_active[tower_target[ri]]) begin
                                 tx = tower_x[ri] * TILE_SIZE + 13;
                                 ty = tower_y[ri] * TILE_SIZE + 13;
-                                ex = enemy_x[tower_target[ri]];
-                                ey = enemy_y[tower_target[ri]];
-                                dx = $signed({1'b0, ex}) - $signed({1'b0, tx});
-                                dy = $signed({1'b0, ey}) - $signed({1'b0, ty});
+                                ex_d = enemy_x[tower_target[ri]];
+                                ey_d = enemy_y[tower_target[ri]];
+                                dx_d = $signed({1'b0, ex_d}) - $signed({1'b0, tx});
+                                dy_d = $signed({1'b0, ey_d}) - $signed({1'b0, ty});
                                 if (!nozzle_hit && !enemy_hit && !tower_hit) begin
-                                    if ((dx[10] ? -dx : dx) > (dy[10] ? -dy : dy)) begin
-                                        if (dx[10]) begin
-                                            if (x >= tx - 12 && x <= tx - 8 && y >= ty - 2 && y <= ty + 2) nozzle_hit = 1;
+                                    if ((dx_d[10] ? -dx_d : dx_d) > (dy_d[10] ? -dy_d : dy_d)) begin
+                                        if (dx_d[10]) begin
+                                            if (x_d >= tx - 12 && x_d <= tx - 8 && y_d >= ty - 2 && y_d <= ty + 2) nozzle_hit = 1;
                                         end else begin
-                                            if (x >= tx + 8 && x <= tx + 12 && y >= ty - 2 && y <= ty + 2) nozzle_hit = 1;
+                                            if (x_d >= tx + 8 && x_d <= tx + 12 && y_d >= ty - 2 && y_d <= ty + 2) nozzle_hit = 1;
                                         end
                                     end else begin
-                                        if (dy[10]) begin
-                                            if (x >= tx - 2 && x <= tx + 2 && y >= ty - 12 && y <= ty - 8) nozzle_hit = 1;
+                                        if (dy_d[10]) begin
+                                            if (x_d >= tx - 2 && x_d <= tx + 2 && y_d >= ty - 12 && y_d <= ty - 8) nozzle_hit = 1;
                                         end else begin
-                                            if (x >= tx - 2 && x <= tx + 2 && y >= ty + 8 && y <= ty + 12) nozzle_hit = 1;
+                                            if (x_d >= tx - 2 && x_d <= tx + 2 && y_d >= ty + 8 && y_d <= ty + 12) nozzle_hit = 1;
                                         end
                                     end
                                     if (nozzle_hit) begin
@@ -1003,7 +1070,7 @@ module main_scene (
                         range = TOWER_RANGE + tower_level[selected_tower_idx] * 20;
                         
 						if (!enemy_hit && !tower_hit && !proj_hit && !nozzle_hit) begin
-							if (is_range_pixel(x, y, tx, ty, range)) begin
+							if (is_range_pixel(x_d, y_d, tx, ty, range)) begin
                                 red = 4'h8; green = 4'h8; blue = 4'h0;
 							end
 						end
@@ -1012,8 +1079,8 @@ module main_scene (
                     for (ri = 0; ri < 8; ri = ri + 1) begin
                         obj_idx = (ri + (frame_odd ? 8 : 0)) % MAX_PROJECTILES;
                         if (proj_active[obj_idx] && !proj_hit && !enemy_hit && !tower_hit && !nozzle_hit) begin
-                            if (x >= proj_x[obj_idx]-1 && x <= proj_x[obj_idx]+1 && 
-                                y >= proj_y[obj_idx]-1 && y <= proj_y[obj_idx]+1) begin
+                            if (x_d >= proj_x[obj_idx]-1 && x_d <= proj_x[obj_idx]+1 && 
+                                y_d >= proj_y[obj_idx]-1 && y_d <= proj_y[obj_idx]+1) begin
                                 proj_hit = 1;
                                 obj_red = 4'hF; obj_green = 4'hF; obj_blue = 4'hF;
                             end
@@ -1026,42 +1093,42 @@ module main_scene (
                         blue = obj_blue;
                     end
                     
-                    if (grid_x == cursor_x && grid_y == cursor_y) begin
-                        if ((pixel_y == 12 || pixel_y == 13) && pixel_x >= 7 && pixel_x <= 18) begin
+                    if (grid_x_d == cursor_x && grid_y_d == cursor_y) begin
+                        if ((pixel_y_d == 12 || pixel_y_d == 13) && pixel_x_d >= 7 && pixel_x_d <= 18) begin
                             red = 4'hF; green = 4'hF; blue = 4'h0;
                         end
-                        if ((pixel_x == 12 || pixel_x == 13) && pixel_y >= 7 && pixel_y <= 18) begin
+                        if ((pixel_x_d == 12 || pixel_x_d == 13) && pixel_y_d >= 7 && pixel_y_d <= 18) begin
                             red = 4'hF; green = 4'hF; blue = 4'h0;
                         end
                     end
-                    if (y < 25) begin
+                    if (y_d < 25) begin
                         red = 4'h2; green = 4'h2; blue = 4'h2;
                         
-                        render_text(x, y, 10, 5, "WAVE:", 5, text_hit);
+                        render_text(x_d, y_d, 10, 5, "WAVE:", 5, text_hit);
                         if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
-                        render_number(x, y, 50, 5, wave_number, 3, text_hit);
-                        if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
+                        render_number(x_d, y_d, 50, 5, wave_number, 3, text_hit);
+                        if (text_hit) begin red = 4'h0; green = 4'h0; blue = 4'hF; end
                         
-                        render_text(x, y, 150, 5, "LIVES:", 6, text_hit);
+                        render_text(x_d, y_d, 150, 5, "LIVES:", 6, text_hit);
                         if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
-                        render_number(x, y, 198, 5, lives, 2, text_hit);
-                        if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
+                        render_number(x_d, y_d, 198, 5, lives, 2, text_hit);
+                        if (text_hit) begin red = 4'hF; green = 4'h0; blue = 4'h0; end
                         
-                        render_text(x, y, 280, 5, "GOLD:", 5, text_hit);
+                        render_text(x_d, y_d, 280, 5, "GOLD:", 5, text_hit);
                         if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
-                        render_number(x, y, 320, 5, currency, 4, text_hit);
-                        if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
+                        render_number(x_d, y_d, 320, 5, currency, 4, text_hit);
+                        if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'h0; end
                         
-                        render_text(x, y, 450, 5, "SCORE:", 6, text_hit);
+                        render_text(x_d, y_d, 450, 5, "SCORE:", 6, text_hit);
                         if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
-                        render_number(x, y, 498, 5, score, 5, text_hit);
-                        if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
+                        render_number(x_d, y_d, 498, 5, score, 5, text_hit);
+                        if (text_hit) begin red = 4'h0; green = 4'hF; blue = 4'h0; end
                     end
                     
                     if (paused) begin
 						// remove the space after paused this is
-						// just so text editor doesn't fuck up syntax highlighiting
-                        render_text(x, y, 280, 240, "PAUSED ", 6, text_hit);
+						// just so text editor doesn't fuck up syntax_d highlighiting
+                        render_text(x_d, y_d, 280, 240, "PAUSED ", 6, text_hit);
                         if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
                     end
                 end
@@ -1069,85 +1136,82 @@ module main_scene (
                 STATE_SHOP: begin
                     red = 4'h0; green = 4'h0; blue = 4'h0;
 
-                    if (x >= 170 && x <= 470 && y >= 140 && y <= 340) begin
+                    if (x_d >= 170 && x_d <= 470 && y_d >= 140 && y_d <= 340) begin
                         red = 4'h2; green = 4'h2; blue = 4'h3;
                         
-                        render_text(x, y, 260, 150, "SELECT TOWER", 12, text_hit);
+                        render_text(x_d, y_d, 260, 150, "SELECT TOWER", 12, text_hit);
                         if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
                         
-                        render_text(x, y, 190, 190, "BASIC TOWER", 11, text_hit);
+                        render_text(x_d, y_d, 190, 190, "BASIC TOWER", 11, text_hit);
                         if (text_hit) begin
                             red = (shop_selection == 0) ? 4'hF : 4'h8;
                             green = (shop_selection == 0) ? 4'hF : 4'h8;
                             blue = (shop_selection == 0) ? 4'h0 : 4'h8;
                         end
-                        render_text(x, y, 350, 190, "COST: 50", 8, text_hit);
+                        render_text(x_d, y_d, 350, 190, "COST: 50", 8, text_hit);
                         if (text_hit && currency >= 50) begin
                             red = 4'h0; green = 4'hF; blue = 4'h0;
                         end else if (text_hit) begin
                             red = 4'hF; green = 4'h0; blue = 4'h0;
                         end
                         
-                        render_text(x, y, 190, 220, "FAST TOWER", 10, text_hit);
+                        render_text(x_d, y_d, 190, 220, "FAST TOWER", 10, text_hit);
                         if (text_hit) begin
                             red = (shop_selection == 1) ? 4'hF : 4'h8;
                             green = (shop_selection == 1) ? 4'hF : 4'h8;
                             blue = (shop_selection == 1) ? 4'h0 : 4'h8;
                         end
-                        render_text(x, y, 350, 220, "COST: 75", 8, text_hit);
+                        render_text(x_d, y_d, 350, 220, "COST: 75", 8, text_hit);
                         if (text_hit && currency >= 75) begin
                             red = 4'h0; green = 4'hF; blue = 4'h0;
                         end else if (text_hit) begin
                             red = 4'hF; green = 4'h0; blue = 4'h0;
                         end
                         
-                        render_text(x, y, 190, 250, "HEAVY TOWER", 11, text_hit);
+                        render_text(x_d, y_d, 190, 250, "HEAVY TOWER", 11, text_hit);
                         if (text_hit) begin
                             red = (shop_selection == 2) ? 4'hF : 4'h8;
                             green = (shop_selection == 2) ? 4'hF : 4'h8;
                             blue = (shop_selection == 2) ? 4'h0 : 4'h8;
                         end
-                        render_text(x, y, 350, 250, "COST: 150", 9, text_hit);
+                        render_text(x_d, y_d, 350, 250, "COST: 150", 9, text_hit);
                         if (text_hit && currency >= 150) begin
                             red = 4'h0; green = 4'hF; blue = 4'h0;
                         end else if (text_hit) begin
                             red = 4'hF; green = 4'h0; blue = 4'h0;
                         end
                         
-                        render_text(x, y, 190, 280, "SLOW TOWER", 10, text_hit);
+                        render_text(x_d, y_d, 190, 280, "SLOW TOWER", 10, text_hit);
                         if (text_hit) begin
                             red = (shop_selection == 3) ? 4'hF : 4'h8;
                             green = (shop_selection == 3) ? 4'hF : 4'h8;
                             blue = (shop_selection == 3) ? 4'h0 : 4'h8;
                         end
-                        render_text(x, y, 350, 280, "COST: 100", 9, text_hit);
+                        render_text(x_d, y_d, 350, 280, "COST: 100", 9, text_hit);
                         if (text_hit && currency >= 100) begin
                             red = 4'h0; green = 4'hF; blue = 4'h0;
                         end else if (text_hit) begin
                             red = 4'hF; green = 4'h0; blue = 4'h0;
                         end
-                        
-                        render_text(x, y, 240, 310, "CENTER BTN TO BUY", 17, text_hit);
-                        if (text_hit) begin red = 4'h8; green = 4'h8; blue = 4'h8; end
                     end
                 end
                 
                 STATE_TOWER_MENU: begin
                     red = 4'h0; green = 4'h0; blue = 4'h0;
                     
-                    if (x >= 170 && x <= 470 && y >= 140 && y <= 340) begin
+                    if (x_d >= 170 && x_d <= 470 && y_d >= 140 && y_d <= 340) begin
                         red = 4'h2; green = 4'h2; blue = 4'h3;
                         
-                        render_text(x, y, 260, 150, "TOWER MENU", 10, text_hit);
+                        render_text(x_d, y_d, 260, 150, "TOWER MENU", 10, text_hit);
                         if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
                         
                         if (selected_tower_idx < MAX_TOWERS && tower_active[selected_tower_idx]) begin
-                            render_text(x, y, 190, 190, "LEVEL:", 6, text_hit);
+                            render_text(x_d, y_d, 190, 190, "LEVEL:", 6, text_hit);
                             if (text_hit) begin red = 4'hA; green = 4'hA; blue = 4'hA; end
-                            render_number(x, y, 238, 190, tower_level[selected_tower_idx] + 1, 1, text_hit);
+                            render_number(x_d, y_d, 238, 190, tower_level[selected_tower_idx] + 1, 1, text_hit);
                             if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
                             
-                            render_text(x, y, 190, 230, "UPGRADE", 7, text_hit);
+                            render_text(x_d, y_d, 190, 230, "UPGRADE", 7, text_hit);
                             if (text_hit) begin
                                 red = (menu_selection == 0) ? 4'hF : 4'h8;
                                 green = (menu_selection == 0) ? 4'hF : 4'h8;
@@ -1155,79 +1219,70 @@ module main_scene (
                             end
                             
                             if (tower_level[selected_tower_idx] < 3) begin
-                                render_text(x, y, 350, 230, "COST:", 5, text_hit);
+                                render_text(x_d, y_d, 350, 230, "COST:", 5, text_hit);
                                 if (text_hit) begin red = 4'h8; green = 4'h8; blue = 4'h8; end
-                                render_number(x, y, 390, 230, TOWER_UPGRADE_COST, 3, text_hit);
+                                render_number(x_d, y_d, 390, 230, TOWER_UPGRADE_COST, 3, text_hit);
                                 if (text_hit && currency >= TOWER_UPGRADE_COST) begin
                                     red = 4'h0; green = 4'hF; blue = 4'h0;
                                 end else if (text_hit) begin
                                     red = 4'hF; green = 4'h0; blue = 4'h0;
                                 end
                             end else begin
-                                render_text(x, y, 350, 230, "MAX LVL", 7, text_hit);
+                                render_text(x_d, y_d, 350, 230, "MAx_d LVL", 7, text_hit);
                                 if (text_hit) begin red = 4'h8; green = 4'h8; blue = 4'h8; end
                             end
                             
-                            render_text(x, y, 190, 260, "SELL", 4, text_hit);
+                            render_text(x_d, y_d, 190, 260, "SELL", 4, text_hit);
                             if (text_hit) begin
                                 red = (menu_selection == 1) ? 4'hF : 4'h8;
                                 green = (menu_selection == 1) ? 4'hF : 4'h8;
                                 blue = (menu_selection == 1) ? 4'h0 : 4'h8;
                             end
                             
-                            render_text(x, y, 350, 260, "VALUE:", 6, text_hit);
+                            render_text(x_d, y_d, 350, 260, "VALUE:", 6, text_hit);
                             if (text_hit) begin red = 4'h8; green = 4'h8; blue = 4'h8; end
-                            render_number(x, y, 398, 260, (TOWER_COST + tower_level[selected_tower_idx] * TOWER_UPGRADE_COST) * TOWER_SELL_RATIO / 100, 3, text_hit);
+                            render_number(x_d, y_d, 398, 260, (TOWER_COST + tower_level[selected_tower_idx] * TOWER_UPGRADE_COST) * TOWER_SELL_RATIO / 100, 3, text_hit);
                             if (text_hit) begin red = 4'h0; green = 4'hF; blue = 4'h0; end
                         end
-                        
-                        render_text(x, y, 240, 310, "CENTER BTN TO SELECT", 20, text_hit);
-                        if (text_hit) begin red = 4'h8; green = 4'h8; blue = 4'h8; end
                     end
                 end
                 
                 STATE_GAMEOVER: begin
                     red = 4'h1; green = 4'h0; blue = 4'h0;
-                    render_text(x, y, 240, 180, "GAME OVER", 9, text_hit);
+                    render_text(x_d, y_d, 240, 180, "GAME OVER", 9, text_hit);
                     if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
                     
-                    render_text(x, y, 240, 220, "FINAL SCORE:", 12, text_hit);
+                    render_text(x_d, y_d, 240, 220, "FINAL SCORE:", 12, text_hit);
                     if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
-                    render_number(x, y, 350, 220, score, 5, text_hit);
-                    if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
-                    
-                    render_text(x, y, 240, 250, "WAVE REACHED:", 13, text_hit);
-                    if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
-                    render_number(x, y, 350, 250, wave_number, 3, text_hit);
+                    render_number(x_d, y_d, 350, 220, score, 5, text_hit);
                     if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
                     
-                    render_text(x, y, 220, 300, "CENTER BTN TO CONTINUE", 22, text_hit);
-                    if (text_hit) begin red = 4'h8; green = 4'h8; blue = 4'h8; end
+                    render_text(x_d, y_d, 240, 250, "WAVE REACHED:", 13, text_hit);
+                    if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
+                    render_number(x_d, y_d, 350, 250, wave_number, 3, text_hit);
+                    if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
                 end
                 
                 STATE_HIGHSCORE: begin
                     red = 4'h1; green = 4'h1; blue = 4'h2;
                     
-                    render_text(x, y, 240, 80, "HIGH SCORES", 11, text_hit);
+                    render_text(x_d, y_d, 250, 80, "HIGH SCORES", 11, text_hit);
                     if (text_hit) begin red = 4'hF; green = 4'hF; blue = 4'hF; end
                     
-                    render_text(x, y, 240, 140, "1ST:", 4, text_hit);
+                    render_text(x_d, y_d, 240, 140, "1ST:", 4, text_hit);
                     if (text_hit) begin red = 4'hF; green = 4'hD; blue = 4'h0; end
-                    render_number(x, y, 300, 140, highscores[0], 6, text_hit);
+                    render_number(x_d, y_d, 300, 140, highscores[0], 6, text_hit);
                     if (text_hit) begin red = 4'hF; green = 4'hD; blue = 4'h0; end
                     
-                    render_text(x, y, 240, 180, "2ND:", 4, text_hit);
+                    render_text(x_d, y_d, 240, 180, "2ND:", 4, text_hit);
                     if (text_hit) begin red = 4'hC; green = 4'hC; blue = 4'hC; end
-                    render_number(x, y, 300, 180, highscores[1], 6, text_hit);
+                    render_number(x_d, y_d, 300, 180, highscores[1], 6, text_hit);
                     if (text_hit) begin red = 4'hC; green = 4'hC; blue = 4'hC; end
                     
-                    render_text(x, y, 240, 220, "3RD:", 4, text_hit);
+                    render_text(x_d, y_d, 240, 220, "3RD:", 4, text_hit);
                     if (text_hit) begin red = 4'h8; green = 4'h4; blue = 4'h0; end
-                    render_number(x, y, 300, 220, highscores[2], 6, text_hit);
+                    render_number(x_d, y_d, 300, 220, highscores[2], 6, text_hit);
                     if (text_hit) begin red = 4'h8; green = 4'h4; blue = 4'h0; end
-                    
-                    render_text(x, y, 230, 300, "CENTER BTN BACK", 15, text_hit);
-                    if (text_hit) begin red = 4'h8; green = 4'h8; blue = 4'h8; end
                 end
             endcase
         end

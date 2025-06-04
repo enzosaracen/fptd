@@ -16,7 +16,7 @@ $(EXE): $(RTL_SRCS) $(SIM_SRC) | $(OBJDIR)
 			  -O3 --x-assign fast --x-initial fast --noassert \
 	          -CFLAGS  "$(SDL_CFLG) -std=c++17" \
 	          -LDFLAGS "$(SDL_LDLIB)" \
-	          -Mdir $(OBJDIR) --build -Wno-WIDTH -Wno-UNSIGNED \
+	          -Mdir $(OBJDIR) --build -Wno-WIDTH -Wno-UNSIGNED -Wno-UNOPTFLAT \
 
 $(OBJDIR):
 	mkdir -p $@
