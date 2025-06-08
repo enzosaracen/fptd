@@ -25,5 +25,5 @@ run: $(EXE)
 	./$<
 
 clean:
-	rm -rf $(OBJDIR) *.fst *.vcd
+	rm -rf $(OBJDIR)
 .PHONY: all run clean
