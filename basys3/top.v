@@ -38,11 +38,6 @@ module top (
     wire btnR_stable = btnR_sync[2];
     wire btnC_stable = btnS_sync[2];
     
-    wire btn1 = sw[0];
-    wire btn2 = sw[1];
-    wire btn3 = sw[2];
-    wire btn4 = sw[3];
-    
     reg [9:0] h_cnt = 0, v_cnt = 0;
     always @(posedge pclk or negedge rst_n) begin
         if (!rst_n) begin
@@ -75,10 +70,10 @@ module top (
         .btnL (btnL_stable),
         .btnR (btnR_stable),
         .btnC (btnC_stable),
-        .btn1 (btn1),
-        .btn2 (btn2),
-        .btn3 (btn3),
-        .btn4 (btn4),
+        .sw1 (sw[0]),
+        .sw2 (sw[1]),
+        .sw3 (sw[2]),
+        .sw4 (sw[3]),
         .red (red),
         .green (green),
         .blue (blue)
